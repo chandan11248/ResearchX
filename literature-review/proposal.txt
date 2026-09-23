@@ -1,0 +1,1008 @@
+Cluster: ANLP
+
+TRIBHUVAN UNIVERSITY
+
+INSTITUTE OF ENGINEERING
+PULCHOWK CAMPUS
+
+Nepali Audio Deepfake Detection Using Self-Supervised Speech
+Representations
+
+SUBMITTED BY
+Asmit Khanal (PUL08BCT017)
+Chandan Kumar Shah (PUL080BCT023)
+Aditya Kumar Shah (PUL080BCT011)
+
+A
+BE MINOR PROJECT PROPOSAL
+SUBMITTED TO THE
+DEPARTMENT OF ELECTRONICS AND COMPUTER ENGINEERING
+IN PARTIAL FULFILLMENT OF THE REQUIREMENTS FOR THE DEGREE OF
+BACHELOR OF ENGINEERING IN
+COMPUTER ENGINEERING
+DEPARTMENT OF ELECTRONICS AND COMPUTER ENGINEERING
+LALITPUR, NEPAL
+
+JUNE, 2026
+
+ABSTRACT
+The rapid advancement of text-to-speech, voice conversion, and voice cloning technologies has made synthetic speech increasingly natural and difficult to distinguish from
+genuine human speech. While audio deepfake detection has been widely studied for
+high-resource languages such as English and Chinese, comparatively little work has
+addressed low-resource languages such as Nepali. This proposal presents a researchbased experimental study for Nepali audio deepfake detection using multilingual selfsupervised speech representations and graph-based spoofing analysis. The proposed system will construct a speaker-disjoint Nepali real/fake speech dataset from public or consented bona fide speech and synthetic speech generated through TTS and voice-cloning
+tools. An English-trained baseline detector will first be evaluated on Nepali audio to
+quantify cross-lingual degradation. The detector will then be adapted using XLS-R frontend, parameter-efficient fine-tuning, and an AASIST spectro-temporal graph-attention
+back-end. Performance will be evaluated using Equal Error Rate, accuracy, precision, recall, F1-score, and confusion matrix analysis. The expected outcome is a Nepali-focused
+audio deepfake detection framework and dataset preparation pipeline that addresses the
+current language gap in audio forensics research.
+
+i
+
+TABLE OF CONTENTS
+ABSTRACT
+
+i
+
+LIST OF FIGURES
+
+iv
+
+LIST OF TABLES
+
+iv
+
+ABBREVIATIONS
+
+v
+
+1
+
+INTRODUCTION
+
+1
+
+2
+
+PROBLEM STATEMENT
+
+3
+
+3
+
+OBJECTIVES
+
+4
+
+3.1
+
+Main Objective . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+4
+
+3.2
+
+Specific Objectives . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+4
+
+4
+
+LITERATURE REVIEW
+
+5
+
+4.1
+
+Review of Related Theory . . . . . . . . . . . . . . . . . . . . . . . .
+
+5
+
+4.1.1
+
+Audio Spoofing Paradigms: Text-to-Speech and Voice Conversion
+
+5
+
+4.1.2
+
+Self-Supervised Feature Extraction with XLS-R . . . . . . . . .
+
+6
+
+4.1.3
+
+Graph-Based Spectro-Temporal Modelling with AASIST . . . .
+
+7
+
+4.1.4
+
+Parameter-Efficient Fine-Tuning Mechanics . . . . . . . . . . .
+
+8
+
+Review of Related Works . . . . . . . . . . . . . . . . . . . . . . . . .
+
+9
+
+4.2.1
+
+Benchmark Datasets . . . . . . . . . . . . . . . . . . . . . . .
+
+9
+
+4.2.2
+
+Detection Methods and Performance Milestones . . . . . . . . 10
+
+4.2.3
+
+Generalisation Collapse . . . . . . . . . . . . . . . . . . . . . 10
+
+4.2.4
+
+Multilingual and Low-Resource Detection . . . . . . . . . . . . 10
+
+4.2.5
+
+Nepali-Specific and Nepal-Originated Work . . . . . . . . . . .
+
+11
+
+Research Gap . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+11
+
+4.2
+
+4.3
+5
+
+PROPOSED METHODOLOGY
+
+13
+
+5.1
+
+Project Approach . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+
+5.2
+
+System Architecture & Design Framework . . . . . . . . . . . . . . . .
+
+ii
+
+14
+
+5.3
+
+5.4
+
+5.5
+
+Algorithms and Models to be Used . . . . . . . . . . . . . . . . . . . . 16
+5.3.1
+
+XLS-R . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16
+
+5.3.2
+
+LoRA . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16
+
+5.3.3
+
+Wavelet Prompt . . . . . . . . . . . . . . . . . . . . . . . . . . 16
+
+5.3.4
+
+AASIST Back-End . . . . . . . . . . . . . . . . . . . . . . . . 16
+
+5.3.5
+
+Classification Head . . . . . . . . . . . . . . . . . . . . . . . .
+
+17
+
+Data Acquisition . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+17
+
+5.4.1
+
+Bona Fide Nepali Speech . . . . . . . . . . . . . . . . . . . . .
+
+17
+
+5.4.2
+
+Spoofed Nepali Speech . . . . . . . . . . . . . . . . . . . . . .
+
+17
+
+5.4.3
+
+Preprocessing . . . . . . . . . . . . . . . . . . . . . . . . . . . 18
+
+Evaluation Metrics . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18
+5.5.1
+
+Equal Error Rate (EER) . . . . . . . . . . . . . . . . . . . . . 18
+
+5.5.2
+
+Classification Accuracy . . . . . . . . . . . . . . . . . . . . . 19
+
+5.5.3
+
+F1-Score . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 19
+
+5.5.4
+
+Confusion Matrix . . . . . . . . . . . . . . . . . . . . . . . . . 20
+
+6 TIME SCHEDULE
+
+21
+
+7
+
+22
+
+EXPECTED OUTCOMES
+
+iii
+
+LIST OF FIGURES
+4.1
+
+XLS-R self-supervised speech representation architecture used as the
+multilingual front-end. . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+7
+
+5.1
+
+Project approach and experimental pipeline. . . . . . . . . . . . . . . . 13
+
+5.2
+
+Proposed XLS-R 0.3B, PEFT, AASIST, and classification framework
+for Nepali audio deepfake detection. . . . . . . . . . . . . . . . . . . . 15
+
+6.1
+
+Proposed 6-week project schedule . . . . . . . . . . . . . . . . . . . .
+
+21
+
+LIST OF TABLES
+4.1
+
+XLS-R model configurations reported in the literature . . . . . . . . . .
+
+7
+
+4.2
+
+Selected ASVspoof 2019 Logical Access results . . . . . . . . . . . . .
+
+8
+
+4.3
+
+Effect of SSL front-end, aggregation, and augmentation in Tak et al. . . 10
+
+4.4
+
+Language coverage gap in relevant audio deepfake resources . . . . . .
+
+11
+
+5.1
+
+Model components and their roles in the proposed framework . . . . .
+
+17
+
+5.2
+
+Confusion Matrix for Binary Audio Deepfake Detection . . . . . . . . 20
+
+iv
+
+ABBREVIATIONS
+ADD
+
+Audio Deepfake Detection
+
+AASIST
+
+Audio Anti-Spoofing using Integrated Spectro-Temporal
+Graph Attention Networks
+
+ASV
+
+Automatic Speaker Verification
+
+ASVspoof Automatic Speaker Verification Spoofing and
+Countermeasures Challenge
+CNN
+
+Convolutional Neural Network
+
+EER
+
+Equal Error Rate
+
+FC
+
+Fully Connected
+
+LFCC
+
+Linear Frequency Cepstral Coefficient
+
+LoRA
+
+Low-Rank Adaptation
+
+MFCC
+
+Mel-Frequency Cepstral Coefficient
+
+PEFT
+
+Parameter-Efficient Fine-Tuning
+
+RNN
+
+Recurrent Neural Network
+
+SSL
+
+Self-Supervised Learning
+
+TTS
+
+Text-to-Speech
+
+VC
+
+Voice Conversion
+
+XLS-R
+
+Cross-Lingual Speech Representation
+
+v
+
+CHAPTER 1
+
+INTRODUCTION
+Advancement in speech and audio generation technologies have increased the quality
+and naturalness of the synthesized audio. Numerous technologies have emerged for this
+case. Emergence of Text-to-Speech (TTS), Voice Conversion (VC) and voice cloning
+have enabled numerous beneficial applications in accessibility, virtual assistants and
+human-computer interaction along with misuse to create deceptive audio content which
+are referred to as deepfake audio [16, 17]. Deepfake audio are convincing enough to
+mimic human voices, posing significant threat to the integrity of digital content and
+worsening the challenges of misinformation. This proliferation of highly realistic synthesized speech which are referred as deepfakes has necessitated robust countermeasure,
+the ability to detect deepfake audio.
+Audio deepfake detection (ADD) is a task that aims to distinguish genuine utterances
+from fake ones via machine learning techniques [9, 10]. Audio deepfake detection uses
+machine learning and acoustic analysis to identify synthesized audios. While substantial
+research has been conducted on audio deepfake detection for high-resource languages
+such as English and Chinese, comparatively little work has focused on low-resource
+languages such as Nepali. Existing state-of-the-art models are primarily trained and
+evaluated using datasets collected from high-resource languages, making their effectiveness in the Nepali language domain largely unexplored. Furthermore, publicly available
+Nepali deepfake detection datasets remain extremely limited, creating additional challenges for developing robust and language-specific detection systems.
+Since the robust architectures has been known to have matured in cloning Nepali Voice,
+the defense mechanism is lacking, thus, this project proposes a robust, localized audio deepfake detection framework for Nepali speech using multilingual self-supervised
+learning (SSL) representations. While state-of-the-art detectors achieve near-zero error
+rates on dominant Western benchmarks, literature confirms a catastrophic performance
+collapse when these English-trained models encounter out-of-distribution, low-resource
+regional languages [10, 11]. To resolve the issue, a resilient audio deepfake detection
+system for Nepali speech, pairing genuine human speech harvested from public media
+with synthetic voice clones generated via modern multilingual Text-to-Speech (TTS)
+1
+
+and Voice Conversion (VC) tools is proposed. Effectiveness of Low-Rank Adaptation
+(LoRA), a parameter-efficient fine-tuning technique, applied to a pre-trained XLS-R
+(Wav2Vec2) front-end coupled with Audio Anti-Spoofing Using Integrated SpectroTemporal Graph Attention Networks (AASIST) back-end is investigated.
+
+2
+
+CHAPTER 2
+
+PROBLEM STATEMENT
+The rapid advancement of speech synthesis including Text-to-Speech (TTS), Voice Conversion (VC), and Zero-shot voice cloning has enabled generation of convincing deepfake audio, posing serious threats to digital audio authenticity and enabling identity fraud
+and misinformation. Significant amount of work has been done on the audio deepfake
+detection for high resource language with comparatively low work for Nepali speech.
+Compounding to that, no standardize dataset currently exists for Nepali Speech.
+As an effort toward this, a fine-tuned model from the 128-language pre-trained XLS-R
+front-end coupled with AASIST back-end for Nepali Speech with the data to be harvested from the public media and synthetic voice cloning can be a solution.
+
+3
+
+CHAPTER 3
+
+OBJECTIVES
+3.1 Main Objective
+The main objective of this project is to fine-tune audio deepfake detection system for
+Nepali Speech leveraging multilingual self-supervised deep learning-based classification techniques.
+
+3.2 Specific Objectives
+The specific objectives of this project are:
+(i) To harvest a labeled Nepali speech dataset comprising of genuine speech collected
+from verified public media sources and synthetic speech generated though TTS
+and voice cloning system.
+(ii) To preprocess both existing and newly collected audio data to ensure a acoustically
+balanced training corpus.
+(iii) To fine tune XLS-R self-supervised front end coupled and AASIST graph attention backend with LoRA-based Parameter Efficient Fine Tuning (PEFT).
+(iv) To evaluate the performance and robustness of proposed system using appropriate
+evaluation metrices such as Equal Errors Rate (EER), classification accuracy, etc.
+
+4
+
+CHAPTER 4
+
+LITERATURE REVIEW
+4.1 Review of Related Theory
+4.1.1 Audio Spoofing Paradigms: Text-to-Speech and Voice Conversion
+The automatic speaker verification spoofing countermeasure literature, formalised
+through the ASVspoof challenge series, divides attacks into logical access, physical
+access or replay, deepfake, and adversarial categories [1–4]. This project is concerned
+with the logical-access and deepfake setting, where a synthesised or converted waveform
+is directly submitted to a verification or listening system. This setting has become the
+most urgent for low-resource languages because modern public text-to-speech and voicecloning systems make the attack feasible without specialised recording equipment.
+Two attack families dominate this setting. In text-to-speech (TTS), a transcript is converted into a waveform that imitates the target speaker. In voice conversion (VC), a
+source utterance is transformed so that it preserves the linguistic content of the speaker
+but changes the speaker identity. The ASVspoof 2019 Logical Access database deliberately combined multiple TTS and VC systems so that detectors would be evaluated
+against unseen synthesizers rather than against only a memorised attack pattern [3, 18].
+This generalisation requirement is central to the present work, where an English-trained
+reference detector is expected to face Nepali speech and Nepali synthesis artefacts.
+The detection problem can be expressed as a binary hypothesis test on an input utterance
+x:
+H0 : x ∈ B (bona fide),
+
+H1 : x ∈ S (spoofed)
+
+(4.1)
+
+Here, B denotes the set of genuine utterances and S denotes the set of spoofed utterances.
+A countermeasure produces a score s(x) and classifies the utterance by thresholding:
+ŷ = ⊮[s(x) ≥ τ ]
+
+(4.2)
+
+where τ is the decision threshold and ŷ = 1 denotes a spoof decision. Equal Error Rate
+(EER) is commonly used because it is threshold-independent and directly comparable
+
+5
+
+across systems:
+EER = PFA (τ ∗ ) = PFR (τ ∗ )
+
+(4.3)
+
+where PFA is the false-acceptance rate, PFR is the false-rejection rate, and τ ∗ is the threshold at which the two rates are equal.
+Prior work shows that spoofing artefacts are not confined to a single acoustic domain.
+Sub-band analyses showed that synthesis traces may appear in specific frequency regions [13, 14], while later studies showed that artefacts may be spectral, temporal,
+or both [7]. This finding is important because fixed representations such as MFCC,
+LFCC, CQT, and Mel-spectrograms impose a designer-chosen view of speech. Muller
+et al. [10] demonstrated that detectors often degrade sharply under cross-dataset conditions, and that Mel-spectrogram smoothing can remove high-frequency information
+useful for synthetic speech detection. A detector for Nepali should therefore avoid assuming that English spoofing artefacts and Nepali spoofing artefacts occupy the same
+acoustic regions.
+
+4.1.2 Self-Supervised Feature Extraction with XLS-R
+Self-supervised learning (SSL) addresses the limitation of handcrafted features by learning representations directly from raw audio before task-specific labels are introduced.
+XLS-R extends wav2vec 2.0 to a multilingual setting and was pre-trained on approximately 436,000 hours of speech from 128 languages [5]. This language coverage is
+the principal reason it is appropriate for a Nepali detector: the XLS-R language table
+includes Nepali with 58 hours of pre-training audio [5]. Consequently, adaptation to
+Nepali is not a fully from-scratch problem.
+XLS-R follows the wav2vec 2.0 architecture. A convolutional feature encoder first
+converts a raw waveform into latent representations, and a Transformer context network then produces contextualised speech representations across time [5, 6]. During
+pre-training, masked time steps must be matched to their true quantised latent target
+against distractors, using a contrastive objective. A diversity term encourages the codebook to be used broadly rather than collapsing to a small set of entries. XLS-R also uses
+temperature-smoothed sampling to balance high-resource and low-resource languages
+during pre-training [5].
+The project uses XLS-R because it is the model size used in the strongest published
+6
+
+wav2vec 2.0 and AASIST anti-spoofing reference system [9]. Table 1 summarises the
+three XLS-R model sizes reported by Babu et al. [5].
+
+Figure 4.1: XLS-R self-supervised speech representation architecture used as the multilingual
+front-end.
+
+Table 4.1: XLS-R model configurations reported in the literature
+
+Model
+XLS-R 0.3B
+XLS-R 1B
+XLS-R 2B
+
+Blocks
+24
+48
+48
+
+Hidden
+1024
+1024
+1920
+
+FFN dim
+4096
+4096
+7680
+
+Parameters
+317M
+965M
+2162M
+
+The value of XLS-R for this project is threefold. First, its pre-training includes Nepali,
+unlike English-only wav2vec 2.0 models. Second, its learned representation is datadriven rather than locked to a fixed spectral transform. Third, Tak et al. [9] showed that
+an XLS-R front-end combined with an AASIST-style back-end can substantially improve audio spoofing detection, reducing ASVspoof 2021 Logical Access pooled EER
+from an AASIST-style baseline of 11.47% to 0.82% when combined with self-attentive
+aggregation and RawBoost augmentation.
+
+4.1.3 Graph-Based Spectro-Temporal Modelling with AASIST
+Graph attention networks (GATs) introduced masked self-attention over graphstructured data, allowing a node to learn how strongly it should attend to each neighbour
+rather than using a fixed aggregation rule [15]. For anti-spoofing, this property is valuable because spoofing artefacts may be concentrated in different spectral or temporal
+regions depending on the attack algorithm.
+AASIST adapts this idea to audio anti-spoofing through integrated spectro-temporal
+graph attention [7]. Its original front-end is based on RawNet2 [8]. The resulting feature map is used to construct a spectral graph and a temporal graph. The Heteroge7
+
+neous Stacking Graph Attention Layer (HS-GAL) then learns attention across spectralspectral, temporal-temporal, and spectral-temporal edge types. A Max Graph Operation (MGO) uses parallel branches and element-wise maximum fusion so that different
+artefact-bearing patterns can compete. Finally, a readout stage combines node-wise
+maximum, node-wise average, and a stack node before classification [7].
+AASIST achieved a best-seed EER of 0.83% and a minimum tandem Detection Cost
+Function (min t-DCF) of 0.0275 on ASVspoof 2019 Logical Access [7]. As shown in
+Table 2, it outperformed several strong raw-waveform and spectral baselines while using
+fewer parameters than many alternatives.
+Table 4.2: Selected ASVspoof 2019 Logical Access results
+
+System
+AASIST [7]
+AASIST-L [7]
+RawGAT-ST [7]
+SENet [?]
+Res-TSSDNet [?]
+
+Parameters
+297K
+85K
+437K
+1,100K
+350K
+
+min t-DCF
+0.0275
+0.0309
+0.0335
+0.0368
+0.0481
+
+EER (%)
+0.83
+0.99
+1.06
+1.14
+1.64
+
+In the proposed project, AASIST is used as the trainable back-end that receives contextualised XLS-R representations. This coupling is supported by Tak et al. [9], who
+validated wav2vec 2.0/XLS-R features with an AASIST-style back-end. The novelty in
+the present proposal is not the invention of a new graph-attention detector, but its careful
+adaptation to Nepali using parameter-efficient fine-tuning and a Nepali real/fake dataset.
+
+4.1.4 Parameter-Efficient Fine-Tuning Mechanics
+Full fine-tuning of XLS-R 0.3B would require updating approximately 317 million parameters, which is computationally expensive and risky for a small Nepali dataset. Two
+problems are especially relevant. First, catastrophic forgetting may overwrite the multilingual acoustic knowledge learned during pre-training. Second, overfitting may occur
+because the downstream Nepali dataset is far smaller than the 436,000 hours used for
+XLS-R pre-training. Parameter-efficient fine-tuning (PEFT) addresses these issues by
+freezing most of the backbone and training only a small number of injected parameters [21].
+The PEFT literature includes additive methods such as adapters and prompt tuning, partial fine-tuning methods such as BitFit, reparameterised methods such as LoRA, and
+8
+
+hybrid methods [21, 22]. LoRA is particularly suitable here because it reparameterises
+the update to a frozen weight matrix as a low-rank product [20]. For a frozen attention
+projection W0 ∈ Rd×k , LoRA learns:
+∆W = Wdown Wup
+
+(4.4)
+
+where Wdown ∈ Rd×r , Wup ∈ Rr×k , and r ≪ {d, k}. The adapted forward pass is:
+h = W0 x + s · Wdown Wup x
+
+(4.5)
+
+where s is a scaling factor. Only Wdown and Wup are trained. At inference, the learned
+low-rank update can be merged into the original weight matrix, avoiding additional latency [20, 21].
+This proposal combines LoRA with a wavelet-prompt adapter. The wavelet path is
+motivated by the fact that audio spoofing artefacts can be sub-band-localised and timevarying [10, 13, 14]. A wavelet decomposition provides multi-scale time-frequency localisation, while the learnable prompt gives the frozen XLS-R front-end an explicit signal about where Nepali-specific artefacts may occur. LoRA and wavelet prompting belong to different PEFT families, so they are complementary: LoRA modifies attention
+projections in a low-rank manner, while the wavelet prompt adds a trainable input-side
+cue.
+
+4.2 Review of Related Works
+4.2.1 Benchmark Datasets
+Progress in audio deepfake detection has been driven by benchmark datasets. ASVspoof
+2015, 2017, 2019, and 2021 established standard evaluation settings for spoofing countermeasures [1–4]. The 2019 Logical Access track remains particularly important because it contains both training and unseen evaluation attacks generated by multiple TTS
+and VC systems [3,18]. English resources such as Fake-or-Real, WaveFake, and In-theWild have further expanded evaluation beyond challenge conditions [10].
+The In-the-Wild dataset is especially significant because it revealed how poorly
+benchmark-trained detectors can generalise to real public audio [10]. Community-
+
+9
+
+maintained repositories also list many public audio deepfake detection resources, but the
+available tables do not indicate a public Nepali real-and-fake detection corpus [27, 28].
+
+4.2.2 Detection Methods and Performance Milestones
+Early systems relied on handcrafted acoustic features and conventional classifiers. Later
+work moved toward raw-waveform networks such as RawNet2 [8], graph-attention systems such as AASIST [7], and self-supervised front-ends such as wav2vec 2.0/XLSR [9].
+Table 3 summarises the component-wise improvement reported by Tak et al. [9] on
+ASVspoof 2021 Logical Access.
+Table 4.3: Effect of SSL front-end, aggregation, and augmentation in Tak et al.
+Configuration
+AASIST-style baseline
+XLS-pR 0.3B frontend
+XLS-R 0.3B + aggregation
+XLS-R 0.3B + aggregation + RawBoost
+
+SSL front-end
+No
+Yes
+Yes
+Yes
+
+Self-attentive aggregation
+No
+No
+Yes
+Yes
+
+Pooled EER (%)
+11.47
+6.15
+4.48
+0.82
+
+These results justify using XLS-R plus AASIST as the reference architecture. However,
+they do not prove that the same detector will work for Nepali, because most benchmark
+evidence is English-centred.
+
+4.2.3 Generalisation Collapse
+The most persistent weakness in audio deepfake detection is generalisation. Muller et
+al. [10] re-evaluated multiple architectures under cross-dataset conditions and found
+large degradation when detectors trained on benchmark data were tested on in-the-wild
+audio. This shows that high in-distribution accuracy is not enough. The detector must
+be tested against audio whose language, platform, recording conditions, and synthesis
+process differ from the training set.
+This point is directly relevant to Nepali. If a detector has learned English-specific spoofing traces, phonotactics, or recording conditions, there is no theoretical guarantee that
+the same score distribution will remain reliable for Nepali. The proposed project therefore treats English-to-Nepali transfer as an empirical question rather than an assumption.
+
+4.2.4 Multilingual and Low-Resource Detection
+Recent multilingual datasets have started to address the English and Chinese bias in the
+field. MLAAD, IndicFake, IndicSynth, SEA-Spoof, and BanglaFake broaden coverage
+to multilingual and South Asian settings, including languages such as Hindi, Bangla,
+10
+
+Marathi, Tamil, Urdu, and Bengali [?, ?, ?, ?, 12]. Nevertheless, the project draft and
+available dataset summaries indicate that Nepali is still absent from these resources.
+Table 4.4: Language coverage gap in relevant audio deepfake resources
+
+Dataset or resource
+ASVspoof 2019/2021
+In-the-Wild
+MLAAD
+IndicFake
+IndicSynth
+SEA-Spoof
+BanglaFake
+Proposed project
+
+Language coverage
+Primarily English
+Public English celebrity/politician audio
+38+ languages
+English plus 17 Indian languages
+12 low-resource Indian languages
+Six South-East Asian languages
+Bengali
+Nepali real and fake speech
+
+Nepali included
+No
+No
+No reported Nepali
+No reported Nepali
+No reported Nepali
+No
+No
+Yes
+
+4.2.5 Nepali-Specific and Nepal-Originated Work
+The Nepali literature shows a generation-detection imbalance. On the generation side,
+Nepali voice cloning and Nepali TTS work has emerged, including transfer-learningbased voice cloning, few-shot multi-speaker cloning, and Tacotron-style Nepali synthesis [23–25]. On the detection side, the closest Nepal-originated work is the CNNBiLSTM detector with attention by Chapagain et al. [26]. That work is important locally, but its dataset is English: SceneFake and Fake-or-Real. It therefore does not
+solve Nepali-language detection.
+
+4.3 Research Gap
+The literature establishes four facts. First, synthetic speech generation is now mature
+enough to create convincing low-resource-language voice deepfakes. Second, XLS-R
+plus AASIST is a strong and empirically validated architecture for anti-spoofing under
+benchmark conditions [7, 9]. Third, benchmark performance does not guarantee realworld or cross-lingual robustness [10]. Fourth, realistic in-domain fine-tuning is one of
+the most practical remedies for generalisation collapse.
+Three specific gaps follow from these facts. The first gap is language coverage bias.
+Existing datasets are dominated by English and a limited number of other languages,
+while Nepali remains unrepresented in the detection resources reviewed. The second
+gap is the lack of evidence for English-to-Nepali detector transfer. Since cross-lingual
+degradation is common, an English-trained model cannot be assumed to protect Nepali
+speakers. The third gap is the absence of a public Nepali bona fide and spoofed audio
+11
+
+detection resource. Existing Nepali work supports the generation side of the problem,
+while detection remains underdeveloped.
+
+12
+
+CHAPTER 5
+
+PROPOSED METHODOLOGY
+5.1 Project Approach
+
+Figure 5.1: Project approach and experimental pipeline.
+
+A systematic project design is proposed to establish a robust framework for audio deepfake detection in Nepali linguistic domain. The approach aims at shifting the massive
+architectures toward highly targeted, language-specific acoustic modelling using param13
+
+eter efficient optimization. The project is structured into three distinct phases: Data
+collection and verification, parameter-efficient fine tuning and robust evaluation.
+To maximize structural flexibility and minimize training, volatility, a decoupled processing strategy is employed. The system cleanly separated the high-dimensional feature representation task from the downstream structural classification task. By isolating
+the front end acoustic encoder from the backend graph classifier distinct optimization
+constraints can be applied to each module independently, preventing the optimization
+of classification boundaries from corrupting the generalized speech patterns preserved
+within the base transformer blocks.
+
+5.2 System Architecture & Design Framework
+The proposed system architecture integrates a multilingual self-supervised front-end,
+parameter-efficient adaptation, and a graph-attention back-end [5,7,9,21]. An overview
+of the framework is presented in Figure 5.2.
+The framework operates through the following stages:
+• Input: A Nepali audio clip.
+• Preprocessing: The raw audio is converted to mono, resampled to 16 kHz, and
+subjected to silence trimming and amplitude normalisation. Clips are segmented
+or padded to a fixed duration to ensure uniform input shape [7, 9].
+• Front-End: XLS-R 0.3B is utilised as the multilingual self-supervised feature
+ex- tractor. The backbone is primarily frozen to retain its pre-trained acoustic
+knowledge [5].
+• Adaptation Layer: Low-Rank Adaptation (LoRA) adapters are inserted into the
+attention projection layers of the XLS-R encoder. Concurrently, a wavelet prompt
+branch is applied to provide time-frequency and sub-band cues to the frozen frontend [?, 13, 20, 21].
+• Back-End: The AASIST graph-attention back-end receives the adapted XLS-Rderived features. It performs spectral and temporal graph modelling to capture
+spoofing artefacts [7].
+
+14
+
+Figure 5.2: Proposed XLS-R 0.3B, PEFT, AASIST, and classification framework for Nepali audio
+deepfake detection.
+
+• Classification: A fully connected classification head processes the AASIST
+graph readouts to produce a final output. The system yields a bona fide/spoof
+probability and a corresponding confidence score.
+
+15
+
+5.3 Algorithms and Models to be Used
+This subsection details the specific algorithms and model components employed in the
+proposed framework.
+
+5.3.1 XLS-R
+XLS-R 0.3B is utilised to extract multilingual contextual speech representations from
+Nepali audio. Because XLS-R includes Nepali in its pre-training corpus, it is more suitable for this task than English-only wav2vec 2.0 models [5]. In the proposed framework,
+XLS-R 0.3B serves as the frozen or PEFT-adapted front-end feature extractor [9].
+
+5.3.2 LoRA
+Low-Rank Adaptation (LoRA) is applied to adapt the XLS-R front-end without requiring full fine-tuning. LoRA learns a low-rank update to selected attention projection
+matrices, specifically targeting the query and value projections [20]. This approach
+drastically reduces the number of trainable parameters and helps prevent catastrophic
+forgetting of the multilingual acoustic knowledge acquired during pre-training [21].
+
+5.3.3 Wavelet Prompt
+A wavelet prompt mechanism is incorporated to provide multi-scale time-frequency information for spoof artefact detection. Because audio spoofing artefacts may manifest
+in specific sub-bands and temporal regions, wavelet decomposition helps localise these
+anomalies more effectively than a single fixed spectral view [?, 13, 14]. The learnable
+prompt provides the frozen XLS-R encoder with explicit cues regarding where Nepalispecific artefacts may occur.
+
+5.3.4 AASIST Back-End
+The Audio Anti-Spoofing using Integrated Spectro-Temporal graph attention networks
+(AASIST) serves as the trainable back-end. AASIST models spectral and temporal relationships through graph attention, receiving the XLS-R-derived features [7]. This component supports artefact modelling across both frequency and time dimensions, enabling
+robust detection of synthesis traces.
+
+16
+
+5.3.5 Classification Head
+A fully connected classification head is used to produce the final real/fake prediction.
+The output consists of the probabilities P (bona fide) and P (spoof), the predicted label,
+and an associated confidence score.
+Table 5.1: Model components and their roles in the proposed framework
+
+Component
+XLS-R 0.3B
+LoRA
+Wavelet prompt
+AASIST
+FC head
+
+Role
+Feature extraction
+Efficient adaptation
+Artefact localisation
+Graph back-end
+Classification
+
+Trainable
+Frozen/PEFT
+Yes
+Yes
+Yes
+Yes
+
+Justification
+Multilingual SSL, includes Nepali
+Low trainable parameter count
+Time-frequency/sub-band cues
+Spectro-temporal spoof modelling
+Real/fake output
+
+5.4 Data Acquisition
+The dataset acquisition plan is critical to addressing the literature gap, as existing audio
+deepfake detection resources remain concentrated around a limited set of benchmark
+languages and do not provide sufficient Nepali language coverage [12, 16, 17].
+
+5.4.1 Bona Fide Nepali Speech
+Bona fide Nepali speech will be collected from public sources, including public Nepali
+interviews, speeches, news clips, podcasts, and educational recordings. Voluntary
+recorded samples may also be utilised if permitted by the project scope. The collection
+will prioritise speaker labels, gender and speaker diversity, and sufficient audio clarity
+for segmentation. All public or consented data will be used in accordance with ethical use statements, since recent surveys emphasise dataset transparency and real-world
+representativeness as continuing challenges in audio deepfake detection [16, 17].
+
+5.4.2 Spoofed Nepali Speech
+Spoofed Nepali speech will be generated using Nepali TTS tools and voice cloning
+systems. Where available, multi-speaker synthetic samples will be produced. The generation process will use the same or comparable text prompts across different synthesis
+systems. Metadata detailing the generation method will be retained for each sample,
+since TTS, voice conversion, few-shot cloning, and zero-shot cloning represent the major families of speech deepfake generation [17, 19].
+
+17
+
+5.4.3 Preprocessing
+All audio clips will undergo consistent preprocessing prior to model input. This includes
+resampling to 16 kHz, mono conversion, silence trimming, and peak or RMS normalisation. Fixed-length segmentation will be applied, and any corrupted or extremely noisy
+files will be removed from the dataset. Consistent preprocessing is required to reduce
+nuisance variation before baseline and adapted-model comparison [7, 9].
+
+5.5 Evaluation Metrics
+The proposed system will be assessed for efficiency and reliability though the use of a
+suite of performance metrics. These metrics are widely adopted in the ASVspoof Challenges and recent audio deepfake detection literature to assess both detection accuracy
+and robustness [3, 4, 16]. The proposed evaluation metrics are:
+
+5.5.1 Equal Error Rate (EER)
+Equal Error Rate (EER) is the principle evaluation metric in audio anti-spoofing research and has been extensively used in the ASVspoof challenges. EER represents the
+operating point at which the False Acceptance Rate (FAR) becomes equal to the False
+Rejection Rate (FRR).
+The False Acceptance Rate is defined as:
+
+FAR =
+
+FP
+FP + TN
+
+(5.1)
+
+where
+• F P = Number of spoofed samples incorrectly classified as genuine
+• T N = Number of spoofed samples correctly classified
+Similarly, the False Rejection Rate is defined as:
+
+FRR =
+
+FN
+TP + FN
+
+where
+• F N = Number of genuine samples incorrectly classified as spoofed
+
+18
+
+(5.2)
+
+• T P = Number of genuine samples correctly classified
+The equal error rate is obtained at the threshold where:
+
+FAR = FRR
+
+(5.3)
+
+5.5.2 Classification Accuracy
+Classification accuracy measures the proportion of correctly classified samples among
+the total number of evaluated samples. It is computed as:
+
+Accuracy =
+
+TP + TN
+TP + TN + FP + FN
+
+(5.4)
+
+where
+• T P = True Positives
+• T N = True Negatives
+• F P = False Positives
+• F N = False Negatives
+Accuracy provides a straightforward measure of overall classification performance.
+
+5.5.3 F1-Score
+The F1-score is a performance metric that provides a balanced evaluation between precision and recall. It is particularly useful in audio deepfake detection scenarios where the
+distribution of genuine and spoofed samples may not always be balanced. Unlike accuracy, which can be biased toward the majority class, the F1-score considers both false
+positive and false negative errors, providing a more reliable measurement of detection
+performance.
+The F1-score is calculated as:
+
+F1 = 2 ×
+
+Precision × Recall
+Precision + Recall
+
+where Precision and Recall are defined as:
+
+19
+
+(5.5)
+
+TP
+TP + FP
+
+(5.6)
+
+TP
+TP + FN
+
+(5.7)
+
+Precision =
+
+Recall =
+where:
+
+• T P = Number of spoofed samples correctly classified as spoofed
+• F P = Number of genuine samples incorrectly classified as spoofed
+• F N = Number of spoofed samples incorrectly classified as genuine
+
+5.5.4 Confusion Matrix
+A confusion matrix is used to analyze the detailed classification behavior of the proposed
+model. It provides information about the number of correctly and incorrectly classified
+samples and helps identify specific failure cases of the detection system.
+For binary audio deepfake detection, the confusion matrix is represented as a tabular
+form showing the relationship between actual and predicted classes.
+Table 5.2: Confusion Matrix for Binary Audio Deepfake Detection
+
+Actual Genuine
+Actual Spoof
+
+Predicted Class
+Genuine
+Spoof
+TP (True Positive)
+FP (False Positive)
+FN (False Negative) TN (True Negative)
+
+where:
+• TP (True Positive): Genuine samples correctly classified as genuine
+• FP (False Positive): Genuine samples incorrectly classified as spoof
+• FN (False Negative): Spoof samples incorrectly classified as genuine
+• TN (True Negative): Spoof samples correctly classified as spoof
+
+20
+
+

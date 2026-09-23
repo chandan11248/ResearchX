@@ -1,0 +1,12 @@
+#!/bin/sh
+# ResearchX one-command launcher (dev mode).
+# Handles the Node version switch and drops you into the app.
+export PATH="$HOME/.local/share/fnm:$PATH"
+eval "$(fnm env)" 2>/dev/null || true
+fnm use 24 >/dev/null 2>&1 || true
+# ResearchX uses only custom providers (custom-providers.json or project .env).
+# Ignore stale vendor keys that would otherwise look "configured" and 401.
+unset ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN ANTHROPIC_API_KEY ANTHROPIC_MODEL
+unset ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_OPUS_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL
+cd "$(dirname "$0")/ResearchX-harness" || exit 1
+exec npm run dev -- "$@"

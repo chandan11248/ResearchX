@@ -1,0 +1,236 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1120">
+  <style>
+    text{font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;fill:#1f2937;}
+    .tTitle{font-size:26px;font-weight:700;fill:#111827;}
+    .tSub{font-size:17px;font-weight:600;fill:#374151;}
+    .pHead{font-size:13px;font-weight:700;letter-spacing:1px;}
+    .lTitle{font-size:16px;font-weight:700;}
+    .cTitle{font-size:13px;font-weight:700;fill:#111827;}
+    .bul{font-size:11px;}
+    .item{font-size:12.5px;}
+    .ic{font-size:15px;}
+    .icL{font-size:18px;}
+    .red{fill:#d93025;font-weight:700;}
+    .line{stroke:#4b5563;stroke-width:1.6;fill:none;}
+  </style>
+
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4b5563"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1600" height="1120" fill="#f7f8fa"/>
+
+  <!-- ================= TITLE ================= -->
+  <text x="800" y="42" text-anchor="middle" class="tTitle">ResearchX: AI Agent for Research &amp; Paper Writing</text>
+  <text x="800" y="72" text-anchor="middle" class="tSub">4-Layer Architecture</text>
+
+  <!-- ================= INPUTS ================= -->
+  <rect x="30" y="170" width="170" height="440" rx="10" fill="#fdfdfd" stroke="#80868b" stroke-width="1.4"/>
+  <text x="115" y="198" text-anchor="middle" class="pHead">INPUTS</text>
+
+  <rect x="45" y="220" width="140" height="70" rx="8" fill="#eef4fb" stroke="#7ba7d9"/>
+  <text x="115" y="248" text-anchor="middle" class="ic">📝</text>
+  <text x="115" y="268" text-anchor="middle" class="bul">Research</text>
+  <text x="115" y="283" text-anchor="middle" class="bul">Question / Idea</text>
+
+  <rect x="45" y="315" width="140" height="70" rx="8" fill="#eef4fb" stroke="#7ba7d9"/>
+  <text x="115" y="343" text-anchor="middle" class="ic">📄</text>
+  <text x="115" y="365" text-anchor="middle" class="bul">Paper / ArXiv Link</text>
+
+  <rect x="45" y="410" width="140" height="70" rx="8" fill="#eef4fb" stroke="#7ba7d9"/>
+  <text x="115" y="438" text-anchor="middle" class="ic">🐙</text>
+  <text x="115" y="460" text-anchor="middle" class="bul">GitHub Repo</text>
+  <text x="115" y="475" text-anchor="middle" class="bul">(Code)</text>
+
+  <rect x="45" y="505" width="140" height="70" rx="8" fill="#eef4fb" stroke="#7ba7d9"/>
+  <text x="115" y="533" text-anchor="middle" class="ic">🗄️</text>
+  <text x="115" y="555" text-anchor="middle" class="bul">Datasets /</text>
+  <text x="115" y="570" text-anchor="middle" class="bul">Data Sources</text>
+
+  <line x1="200" y1="450" x2="260" y2="450" class="line" marker-end="url(#ar)"/>
+
+  <!-- ================= LAYER 1 : RESEARCH ================= -->
+  <rect x="265" y="100" width="930" height="210" rx="12" fill="#eaf1fb" stroke="#3b6fd4" stroke-width="1.5"/>
+  <text x="730" y="130" text-anchor="middle" class="lTitle" fill="#1a56c9">1. RESEARCH LAYER</text>
+
+  <rect x="285" y="150" width="280" height="130" rx="8" fill="#ffffff" stroke="#7ba7d9"/>
+  <text x="303" y="178" class="ic">🔍</text>
+  <text x="326" y="178" class="cTitle">Paper Search &amp; Ranking</text>
+  <text x="303" y="205" class="bul">• arXiv API</text>
+  <text x="303" y="222" class="bul">• Semantic Scholar</text>
+  <text x="303" y="239" class="bul">• OpenAlex</text>
+
+  <line x1="565" y1="215" x2="585" y2="215" class="line" marker-end="url(#ar)"/>
+
+  <rect x="590" y="150" width="280" height="130" rx="8" fill="#ffffff" stroke="#7ba7d9"/>
+  <text x="608" y="178" class="ic">📄</text>
+  <text x="631" y="178" class="cTitle">Literature Review Synthesis</text>
+  <text x="608" y="205" class="bul">• Summarize</text>
+  <text x="608" y="222" class="bul">• Compare</text>
+  <text x="608" y="239" class="bul">• Source-per-claim tagging</text>
+
+  <line x1="870" y1="215" x2="890" y2="215" class="line" marker-end="url(#ar)"/>
+
+  <rect x="895" y="150" width="280" height="130" rx="8" fill="#ffffff" stroke="#7ba7d9"/>
+  <text x="913" y="178" class="ic">⚖️</text>
+  <text x="936" y="178" class="cTitle">Code-vs-Paper Audit</text>
+  <text x="913" y="205" class="bul">• Compare claims vs code</text>
+  <text x="913" y="222" class="bul">• Flag mismatches</text>
+  <text x="913" y="239" class="bul">• Evidence links</text>
+
+  <line x1="730" y1="310" x2="730" y2="335" class="line" marker-end="url(#ar)"/>
+
+  <!-- ================= LAYER 2 : EXPERIMENT ================= -->
+  <rect x="265" y="340" width="930" height="220" rx="12" fill="#e8f5ec" stroke="#2f9e57" stroke-width="1.5"/>
+  <text x="730" y="370" text-anchor="middle" class="lTitle" fill="#1e7e34">2. EXPERIMENT LAYER</text>
+
+  <rect x="290" y="390" width="205" height="150" rx="8" fill="#ffffff" stroke="#7fc79b"/>
+  <text x="306" y="416" class="ic">🔀</text>
+  <text x="306" y="440" class="cTitle">Git Branch per</text>
+  <text x="306" y="456" class="cTitle">Hypothesis</text>
+  <text x="306" y="478" class="bul">• One repo</text>
+  <text x="306" y="495" class="bul">• One branch per experiment</text>
+
+  <line x1="495" y1="465" x2="511" y2="465" class="line" marker-end="url(#ar)"/>
+
+  <rect x="515" y="390" width="205" height="150" rx="8" fill="#ffffff" stroke="#7fc79b"/>
+  <text x="531" y="416" class="ic">💻</text>
+  <text x="531" y="440" class="cTitle">Execute Experiments</text>
+  <text x="531" y="456" class="cTitle">(Free-tier Compute)</text>
+  <text x="531" y="478" class="bul">• Colab Notebook</text>
+  <text x="531" y="495" class="bul">• Kaggle Kernel API</text>
+  <text x="531" y="512" class="bul">• Local Docker</text>
+
+  <line x1="720" y1="465" x2="736" y2="465" class="line" marker-end="url(#ar)"/>
+
+  <rect x="740" y="390" width="205" height="150" rx="8" fill="#ffffff" stroke="#7fc79b"/>
+  <text x="756" y="416" class="ic">🗄️</text>
+  <text x="756" y="440" class="cTitle">Findings Memory</text>
+  <text x="756" y="456" class="cTitle">(Ledger)</text>
+  <text x="756" y="478" class="bul">• JSON / SQLite</text>
+  <text x="756" y="495" class="bul">• What tried</text>
+  <text x="756" y="512" class="bul">• What failed &amp; why</text>
+  <text x="756" y="529" class="bul">• Results / Metrics</text>
+
+  <line x1="945" y1="465" x2="961" y2="465" class="line" marker-end="url(#ar)"/>
+
+  <rect x="965" y="390" width="205" height="150" rx="8" fill="#ffffff" stroke="#7fc79b"/>
+  <text x="981" y="416" class="ic">⚠️</text>
+  <text x="981" y="440" class="cTitle">Doom-loop Detector</text>
+  <text x="981" y="478" class="bul">• Detect repeated failures</text>
+  <text x="981" y="495" class="bul">• Kill stuck runs</text>
+  <text x="981" y="512" class="bul">• Save resources</text>
+
+  <line x1="730" y1="560" x2="730" y2="585" class="line" marker-end="url(#ar)"/>
+
+  <!-- ================= LAYER 3 : INTEGRITY ================= -->
+  <rect x="265" y="590" width="930" height="190" rx="12" fill="#fbf6e3" stroke="#b3922a" stroke-width="1.5"/>
+  <text x="730" y="620" text-anchor="middle" class="lTitle" fill="#8a6d1a">3. INTEGRITY LAYER (Non-Negotiable)</text>
+
+  <rect x="285" y="640" width="280" height="130" rx="8" fill="#ffffff" stroke="#d4bc6a"/>
+  <text x="303" y="666" class="ic">🛡️</text>
+  <text x="326" y="666" class="cTitle">Citation Integrity</text>
+  <text x="303" y="692" class="bul">• Verify every citation</text>
+  <text x="303" y="709" class="bul">• Semantic Scholar /</text>
+  <text x="303" y="726" class="bul">  OpenAlex / Crossref check</text>
+  <text x="303" y="743" class="bul">• No fabricated refs</text>
+
+  <line x1="565" y1="705" x2="585" y2="705" class="line" marker-end="url(#ar)"/>
+
+  <rect x="590" y="640" width="280" height="130" rx="8" fill="#ffffff" stroke="#d4bc6a"/>
+  <text x="608" y="666" class="ic">📋</text>
+  <text x="631" y="666" class="cTitle">Claim-to-Evidence Integrity</text>
+  <text x="608" y="692" class="bul">• Every experimental claim</text>
+  <text x="608" y="709" class="bul">  must link to a logged result</text>
+  <text x="608" y="726" class="bul">• Must exist in Findings Memory</text>
+
+  <line x1="870" y1="705" x2="890" y2="705" class="line" marker-end="url(#ar)"/>
+
+  <rect x="895" y="640" width="280" height="130" rx="8" fill="#ffffff" stroke="#d4bc6a"/>
+  <text x="913" y="666" class="ic">👤</text>
+  <text x="936" y="666" class="cTitle">Human Checkpoint</text>
+  <text x="936" y="684" class="red" font-size="12">(Mandatory)</text>
+  <text x="913" y="706" class="bul">• Human review &amp; approval</text>
+  <text x="913" y="723" class="bul">  before finalization</text>
+  <text x="913" y="740" class="bul">• Never fully autonomous</text>
+
+  <line x1="730" y1="780" x2="730" y2="805" class="line" marker-end="url(#ar)"/>
+
+  <!-- ================= LAYER 4 : WRITING ================= -->
+  <rect x="265" y="810" width="930" height="190" rx="12" fill="#f3ecfa" stroke="#8e5bd0" stroke-width="1.5"/>
+  <text x="730" y="840" text-anchor="middle" class="lTitle" fill="#6b3fa8">4. WRITING LAYER</text>
+
+  <rect x="285" y="855" width="280" height="130" rx="8" fill="#ffffff" stroke="#b79ae0"/>
+  <text x="303" y="881" class="ic">✏️</text>
+  <text x="326" y="881" class="cTitle">Draft Paper Sections</text>
+  <text x="303" y="907" class="bul">• Intro, Related Work, Method,</text>
+  <text x="303" y="924" class="bul">  Experiments, Results, Discussion,</text>
+  <text x="303" y="941" class="bul">  Conclusion</text>
+  <text x="303" y="958" class="bul">• Uses verified findings only</text>
+
+  <line x1="565" y1="920" x2="585" y2="920" class="line" marker-end="url(#ar)"/>
+
+  <rect x="590" y="855" width="280" height="130" rx="8" fill="#ffffff" stroke="#b79ae0"/>
+  <text x="608" y="881" class="ic">📄</text>
+  <text x="631" y="881" class="cTitle">Skeptic Pass (Single-Pass Review)</text>
+  <text x="608" y="907" class="bul">• Does every claim trace to a</text>
+  <text x="608" y="924" class="bul">  citation or logged experiment?</text>
+  <text x="608" y="941" class="bul">• Flag gaps / weak claims</text>
+
+  <line x1="870" y1="920" x2="890" y2="920" class="line" marker-end="url(#ar)"/>
+
+  <rect x="895" y="855" width="280" height="130" rx="8" fill="#ffffff" stroke="#b79ae0"/>
+  <text x="913" y="881" class="ic">📑</text>
+  <text x="936" y="881" class="cTitle">Ready for Human Review</text>
+  <text x="913" y="907" class="bul">• Draft complete</text>
+  <text x="913" y="924" class="bul">• All claims traceable</text>
+  <text x="913" y="941" class="bul">• Human approval required</text>
+
+  <line x1="1195" y1="905" x2="1270" y2="905" class="line" marker-end="url(#ar)"/>
+
+  <!-- ================= RIGHT PANELS ================= -->
+  <rect x="1275" y="120" width="295" height="180" rx="10" fill="#fdfdfd" stroke="#80868b" stroke-width="1.4"/>
+  <text x="1422" y="148" text-anchor="middle" class="pHead">EXTERNAL FREE APIS</text>
+  <text x="1300" y="182" class="ic">📕</text><text x="1332" y="182" class="item">arXiv API</text>
+  <text x="1300" y="214" class="ic">🎓</text><text x="1332" y="214" class="item">Semantic Scholar API</text>
+  <text x="1300" y="246" class="ic">🌐</text><text x="1332" y="246" class="item">OpenAlex API</text>
+  <text x="1300" y="278" class="ic">📚</text><text x="1332" y="278" class="item">Crossref API</text>
+  <line x1="1197" y1="205" x2="1271" y2="205" class="line" marker-start="url(#ar)" marker-end="url(#ar)"/>
+
+  <rect x="1275" y="380" width="295" height="150" rx="10" fill="#fdfdfd" stroke="#80868b" stroke-width="1.4"/>
+  <text x="1422" y="408" text-anchor="middle" class="pHead">COMPUTE OPTIONS (FREE TIER)</text>
+  <text x="1300" y="442" class="ic">🟠</text><text x="1332" y="442" class="item">Google Colab</text>
+  <text x="1300" y="474" class="ic">🔵</text><text x="1332" y="474" class="item">Kaggle Kernels</text>
+  <text x="1300" y="506" class="ic">🐳</text><text x="1332" y="506" class="item">Local Docker</text>
+  <line x1="1197" y1="450" x2="1271" y2="450" class="line" marker-start="url(#ar)" marker-end="url(#ar)"/>
+
+  <rect x="1275" y="610" width="295" height="150" rx="10" fill="#fdfdfd" stroke="#80868b" stroke-width="1.4"/>
+  <text x="1422" y="638" text-anchor="middle" class="pHead">VERIFICATION SOURCES</text>
+  <text x="1300" y="672" class="ic">🎓</text><text x="1332" y="672" class="item">Semantic Scholar API</text>
+  <text x="1300" y="704" class="ic">🌐</text><text x="1332" y="704" class="item">OpenAlex API</text>
+  <text x="1300" y="736" class="ic">📚</text><text x="1332" y="736" class="item">Crossref API</text>
+  <line x1="1197" y1="685" x2="1271" y2="685" class="line" marker-start="url(#ar)" marker-end="url(#ar)"/>
+
+  <!-- ================= FINAL OUTPUT ================= -->
+  <rect x="1275" y="790" width="295" height="240" rx="10" fill="#fde8e6" stroke="#d93025" stroke-width="1.5"/>
+  <text x="1422" y="818" text-anchor="middle" class="pHead" fill="#c5221f">FINAL OUTPUT</text>
+  <text x="1422" y="862" text-anchor="middle" class="icL">📄</text>
+  <text x="1422" y="890" text-anchor="middle" class="cTitle">Research Paper</text>
+  <text x="1422" y="908" text-anchor="middle" class="cTitle">(Draft)</text>
+  <line x1="1300" y1="925" x2="1545" y2="925" stroke="#d93025" stroke-width="1" stroke-dasharray="5 4"/>
+  <text x="1422" y="962" text-anchor="middle" class="icL">👤</text>
+  <text x="1422" y="986" text-anchor="middle" class="cTitle">Human</text>
+  <text x="1422" y="1003" text-anchor="middle" class="cTitle">Approval</text>
+  <text x="1422" y="1020" text-anchor="middle" class="bul">(Final Step)</text>
+
+  <!-- ================= FOUNDATION ================= -->
+  <rect x="265" y="1020" width="930" height="70" rx="10" fill="#eceff1" stroke="#90a4ae" stroke-width="1.4"/>
+  <text x="730" y="1044" text-anchor="middle" class="pHead">FOUNDATION &amp; ORCHESTRATION</text>
+  <text x="300" y="1070" class="item">🤖 Agent Orchestrator</text>
+  <text x="495" y="1070" class="item">🛠️ Tool Manager</text>
+  <text x="650" y="1070" class="item">🧠 Memory Manager</text>
+  <text x="830" y="1070" class="item">💬 Prompt &amp; Context Manager</text>
+  <text x="1050" y="1070" class="item">📊 Logging &amp; Monitoring</text>
+</svg>

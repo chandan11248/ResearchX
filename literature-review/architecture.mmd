@@ -1,0 +1,30 @@
+%% ResearchX architecture — Mermaid source (mirrors literature-review.md §6).
+%% Renders the discussed 4-layer architecture on the Pi harness base,
+%% with the intended discovery baseline, current verification boundary, and
+%% the proposed Kaggle loop.
+
+flowchart TB
+    IN["Inputs<br/>question / paper or arXiv link / repo / dataset"] --> RL
+
+    subgraph PIBASE["Pi harness base - owns loop, TUI, tools, sessions"]
+        direction TB
+        RL["1 Research Layer<br/>search + rank + synthesize + audit"]
+        EL["2 Experiment Layer<br/>hypothesis runs + Kaggle loop + findings"]
+        IL["3 Integrity Layer<br/>citation check + claim-evidence + human checkpoint"]
+        WL["4 Writing Layer<br/>draft + skeptic pass + ready for review"]
+        OUT["Draft + provenance artifact"]
+        FOUND["Foundation<br/>orchestrator / tool manager / memory / prompt-context / logging"]
+        RL --> EL --> IL --> WL
+        WL --> OUT
+    end
+
+    OUT --> GATE["Human approval<br/>mandatory final gate"]
+
+    RL <--> SRC["Paper sources<br/>OpenAlex / Crossref / arXiv / Europe PMC / alphaXiv<br/>Pi web search"]
+    EL <--> CMP["Compute<br/>Kaggle Kernels default GPU<br/>Local workspace fallback"]
+    IL <--> VER["Verification<br/>Crossref + identifier/title rules<br/>Current verifier still calls Semantic Scholar"]
+
+    FOUND -.-> EL
+    FOUND -.-> IL
+    FOUND -.-> WL
+    FOUND -.-> RL
