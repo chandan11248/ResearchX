@@ -31,8 +31,8 @@
 
 ## Reconstruction verification — 2026-09-24
 
-- `codex-history-reconstruction` contains seven ordered commits and all 903 tracked paths.
+- The local `main` history contains eight ordered commits and all 903 tracked paths.
 - Its tip matches the working tree exactly; compared with `main`, only the three audit files changed.
-- `main`, `origin/main`, and `codex-history-before-reconstruction` still point to `f83e1e8`.
+- `backup/main-before-history` and `origin/main` still point to `f83e1e8`; local `main` contains the organized development history.
 - `npm run typecheck` passes, including the workbench web typecheck.
 - `npm test` ran 1,034 tests: 881 passed and 153 failed. The failures are dominated by the environment rather than this history operation: the installed Node is `26.8.1` while the project accepts `22.22.0` through `25.x`, and sandboxed tests cannot bind localhost or create data under the user-level `.researchx` directory.

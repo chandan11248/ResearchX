@@ -51,8 +51,8 @@ metadata, or README hero asset.
 - Old Git metadata is moved to `/private/tmp` as a recoverable backup, then excluded from the new repository.
 - Generated dependencies, runtime state, secrets, and build outputs remain ignored.
 - Both inherited hero assets are removed because both displayed legacy branding.
-- The reconstructed commits use current reconstruction timestamps and the explicit `reconstructed:` prefix; they are not presented as recovered historical commits.
-- The review branch is `codex-history-reconstruction`; the safety branch `codex-history-before-reconstruction` points to the original published root.
+- The development commits use current timestamps; no historical dates are invented or presented as recovered chronology.
+- The original published root is preserved at `backup/main-before-history`; `origin/main` remains unchanged pending an explicit publication decision.
 
 ## Errors Encountered
 
