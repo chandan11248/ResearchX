@@ -28,3 +28,11 @@
 - The current tree is substantial and has clear boundaries: Pi runtime/CLI, model and system adapters, research/search and scientific connector extensions, workbench control-plane modules, skills/prompts, web surfaces, tests, and release tooling.
 - Any new commit sequence will therefore be a retrospective reconstruction from the existing final tree. Commit messages and dates must not imply that Git recovered the original chronology.
 - The remote `main` will remain untouched while a local review branch is built.
+
+## Reconstruction verification — 2026-09-24
+
+- `codex-history-reconstruction` contains seven ordered commits and all 903 tracked paths.
+- Its tip matches the working tree exactly; compared with `main`, only the three audit files changed.
+- `main`, `origin/main`, and `codex-history-before-reconstruction` still point to `f83e1e8`.
+- `npm run typecheck` passes, including the workbench web typecheck.
+- `npm test` ran 1,034 tests: 881 passed and 153 failed. The failures are dominated by the environment rather than this history operation: the installed Node is `26.8.1` while the project accepts `22.22.0` through `25.x`, and sandboxed tests cannot bind localhost or create data under the user-level `.researchx` directory.

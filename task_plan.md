@@ -40,9 +40,9 @@ metadata, or README hero asset.
 - [x] Confirm the published repository currently contains one standalone root commit.
 - [x] Check reflogs and unreachable objects for recoverable prior development commits.
 - [x] Map the existing tree into implementation phases without changing product behavior.
-- [ ] Build a clearly labeled local reconstruction branch from the current tree.
-- [ ] Re-run verification and compare the reconstructed tip with the current source tree.
-- [ ] Leave the existing published `main` history unchanged until the user explicitly requests a remote rewrite.
+- [x] Build a clearly labeled local reconstruction branch from the current tree.
+- [x] Re-run verification and compare the reconstructed tip with the current source tree.
+- [x] Leave the existing published `main` history unchanged until the user explicitly requests a remote rewrite.
 
 ## Decisions
 
@@ -51,6 +51,8 @@ metadata, or README hero asset.
 - Old Git metadata is moved to `/private/tmp` as a recoverable backup, then excluded from the new repository.
 - Generated dependencies, runtime state, secrets, and build outputs remain ignored.
 - Both inherited hero assets are removed because both displayed legacy branding.
+- The reconstructed commits use current reconstruction timestamps and the explicit `reconstructed:` prefix; they are not presented as recovered historical commits.
+- The review branch is `codex-history-reconstruction`; the safety branch `codex-history-before-reconstruction` points to the original published root.
 
 ## Errors Encountered
 
