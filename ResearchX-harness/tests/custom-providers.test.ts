@@ -168,8 +168,25 @@ test("missing config and empty env registers nothing and warns nothing", async (
 test("researchx theme exists and uses a blue accent", () => {
 	const theme = JSON.parse(
 		readFileSync(new URL("../.researchx/themes/researchx.json", import.meta.url), "utf8"),
-	) as { name: string; colors: Record<string, string>; vars: Record<string, string> };
+	) as {
+		name: string;
+		colors: Record<string, string>;
+		vars: Record<string, string>;
+		export: Record<string, string>;
+	};
 	assert.equal(theme.name, "researchx");
 	assert.equal(theme.colors.accent, "azure");
+	assert.equal(theme.colors.borderAccent, "azure");
+	assert.equal(theme.colors.text, "iris");
+	assert.equal(theme.colors.inputText, "iris");
+	assert.equal(theme.colors.dim, "iris");
+	assert.equal(theme.colors.muted, "iris");
 	assert.match(theme.vars.azure ?? "", /^#[0-9a-f]{6}$/i);
+	assert.equal(theme.vars.iris, "#aa8ba9");
+	assert.equal(theme.vars.selection, "#1d3557");
+	assert.equal(theme.vars.azure, "#6d8fc4");
+	assert.equal(theme.export.pageBg, "#070b16");
+	assert.equal(theme.export.cardBg, "#0c1323");
+	assert.equal(theme.export.infoBg, "#182538");
+	assert.doesNotMatch(JSON.stringify(theme), /#2d353b|#343f44|#374247/);
 });

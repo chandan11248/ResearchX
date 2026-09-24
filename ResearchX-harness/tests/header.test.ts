@@ -3,29 +3,28 @@ import test from "node:test";
 
 import { visibleWidth } from "@earendil-works/pi-tui";
 
-import { installResearchXHeader } from "../extensions/research-tools/header.js";
+import {
+	formatHeaderDate,
+	getQuoteOfTheDay,
+	installResearchXHeader,
+} from "../extensions/research-tools/header.js";
 
-type HeaderFactory = (_tui: unknown, theme: {
+type HeaderFactory = (_tui: { requestRender: () => void }, theme: {
 	fg: (_color: string, text: string) => string;
 	bold: (text: string) => string;
 }) => {
 	render: (width: number) => string[];
 	invalidate: () => void;
+	dispose?: () => void;
 };
 
-test("ResearchX header truncates long workflow names within terminal width", async () => {
-	let headerFactory: HeaderFactory | undefined;
-	const pi = {
-		getCommands: () => [
-			{
-				source: "prompt",
-				name: "gather-context-and-clarify",
-				description: "Use subagents to gather context, then ask clarifying questions before execution.",
-			},
-		],
-		getAllTools: () => [],
-	};
-	const ctx = {
+const theme = {
+	fg: (_color: string, text: string) => text,
+	bold: (text: string) => text,
+};
+
+function makeContext(setHeader: (factory: HeaderFactory) => void) {
+	return {
 		hasUI: true,
 		model: { provider: "openai", id: "gpt-5.5" },
 		cwd: process.cwd(),
@@ -34,67 +33,73 @@ test("ResearchX header truncates long workflow names within terminal width", asy
 			getSessionName: () => "test",
 			getSessionId: () => "session-1",
 		},
-		ui: {
-			setHeader: (factory: HeaderFactory) => {
-				headerFactory = factory;
-			},
+		ui: { setHeader },
+	};
+}
+
+test("ResearchX header renders the command deck, date signal, and galaxy", async () => {
+	let headerFactory: HeaderFactory | undefined;
+	const shortcuts: Record<string, { handler: () => void | Promise<void> }> = {};
+	const editorValues: string[] = [];
+	const pi = {
+		getCommands: () => [
+			{ source: "prompt", name: "deepresearch", description: "Run a deep research workflow." },
+			{ source: "prompt", name: "review", description: "Review a research draft." },
+		],
+		getAllTools: () => new Array(3),
+		registerShortcut: (shortcut: string, options: { handler: () => void | Promise<void> }) => {
+			shortcuts[shortcut] = options;
 		},
 	};
-	const cache = {};
 
-	await installResearchXHeader(pi as any, ctx as any, cache);
+	const ctx = makeContext((factory) => { headerFactory = factory; }) as any;
+	ctx.ui.select = async () => "/deepresearch — Run a deep research workflow.";
+	ctx.ui.setEditorText = (value: string) => editorValues.push(value);
+	await installResearchXHeader(pi as any, ctx, {});
 	assert.ok(headerFactory);
+	assert.deepEqual(Object.keys(shortcuts).sort(), ["ctrl+shift+c", "ctrl+shift+h", "ctrl+shift+m"]);
 
-	const theme = {
-		fg: (_color: string, text: string) => text,
-		bold: (text: string) => text,
+	const component = headerFactory({ requestRender: () => {} }, theme);
+	const text = component.render(120).join("\n");
+	assert.doesNotMatch(text, /Skill Matrix/);
+	assert.match(text, /Command Deck/);
+	assert.match(text, /ALL COMMANDS/);
+	assert.match(text, /HELP/);
+	assert.match(text, /MODELS/);
+	assert.match(text, /NEBULA \/\/ LIVE/);
+	assert.match(text, /DAILY SIGNAL/);
+	assert.match(text, new RegExp(formatHeaderDate(new Date())));
+	const quote = getQuoteOfTheDay(new Date());
+	assert.match(text, new RegExp(quote.split(" ").slice(0, 5).join(" ").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+	assert.match(text, /INITIALIZING|CALIBRATING|CORE ONLINE/);
+
+	await shortcuts["ctrl+shift+c"]!.handler();
+	shortcuts["ctrl+shift+h"]!.handler();
+	shortcuts["ctrl+shift+m"]!.handler();
+	assert.deepEqual(editorValues, ["/deepresearch", "/help", "/researchx-model"]);
+	component.dispose?.();
+});
+
+test("ResearchX header keeps every rendered line within narrow terminal widths", async () => {
+	let headerFactory: HeaderFactory | undefined;
+	const pi = {
+		getCommands: () => [{ source: "prompt", name: "gather-context-and-clarify", description: "Use subagents to gather context before execution." }],
+		getAllTools: () => [],
+		registerShortcut: () => {},
 	};
-	for (const width of [121, 50]) {
-		const lines = headerFactory(undefined, theme).render(width);
+
+	await installResearchXHeader(pi as any, makeContext((factory) => { headerFactory = factory; }) as any, {});
+	assert.ok(headerFactory);
+	const component = headerFactory({ requestRender: () => {} }, theme);
+	for (const width of [160, 100, 50, 32, 16, 8, 7]) {
+		const lines = component.render(width);
+		assert.ok(lines.length > 0);
 		for (const line of lines) {
 			assert.ok(
 				visibleWidth(line) <= width,
 				`expected line width ${visibleWidth(line)} to fit terminal width ${width}: ${line}`,
 			);
 		}
-		assert.doesNotMatch(lines.join("\n"), /\/gather-context-and-clarifyUse/);
 	}
-});
-
-test("ResearchX header shows reactor boot status without agent skill lists", async () => {
-	let headerFactory: HeaderFactory | undefined;
-	const pi = {
-		getCommands: () => [
-			{ source: "prompt", name: "lit", description: "Run a literature review." },
-		],
-		getAllTools: () => new Array(3),
-	};
-	const ctx = {
-		hasUI: true,
-		model: { provider: "openai", id: "gpt-5.5" },
-		cwd: process.cwd(),
-		sessionManager: {
-			getBranch: () => [],
-			getSessionName: () => "test",
-			getSessionId: () => "session-1",
-		},
-		ui: {
-			setHeader: (factory: HeaderFactory) => {
-				headerFactory = factory;
-			},
-		},
-	};
-
-	await installResearchXHeader(pi as any, ctx as any, {});
-	assert.ok(headerFactory);
-
-	const theme = {
-		fg: (_color: string, text: string) => text,
-		bold: (text: string) => text,
-	};
-	const text = headerFactory(undefined, theme).render(100).join("\n");
-	assert.match(text, /INITIALIZING|CALIBRATING|CORE ONLINE/);
-	assert.match(text, /Type \/ to browse commands/);
-	assert.doesNotMatch(text, /Agents & Chains/);
-	assert.doesNotMatch(text, /^Agents$/m);
+	component.dispose?.();
 });

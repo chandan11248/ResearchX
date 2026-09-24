@@ -161,21 +161,37 @@ function detectSystemResources(): SystemResources {
 	return cachedResources;
 }
 
-type WorkflowInfo = { name: string; description: string };
+export type ResearchXHeaderCache = {
+	agentSummaryPromise?: Promise<{ agents: string[]; chains: string[] }>;
+	commandShortcutsRegistered?: boolean;
+	commandContext?: ExtensionContext;
+	commandPi?: ExtensionAPI;
+	headerRequestRender?: () => void;
+};
 
-function getResearchWorkflows(pi: ExtensionAPI): WorkflowInfo[] {
-	return pi.getCommands()
-		.filter((cmd) => cmd.source === "prompt")
-		.map((cmd) => ({ name: `/${cmd.name}`, description: cmd.description ?? "" }))
-		.sort((a, b) => a.name.localeCompare(b.name));
+const QUOTES_OF_THE_DAY = [
+	"The important thing is to never stop questioning.",
+	"Somewhere, something incredible is waiting to be known.",
+	"Adopt the pace of nature: her secret is patience.",
+	"What we know is a drop; what we do not know is an ocean.",
+	"The cure for boredom is curiosity. There is no cure for curiosity.",
+	"Research is seeing what everybody else has seen and thinking what nobody else has thought.",
+];
+
+function getDayOfYear(date: Date): number {
+	const start = new Date(date.getFullYear(), 0, 0);
+	return Math.floor((date.getTime() - start.getTime()) / 86_400_000);
 }
 
-function shortDescription(desc: string): string {
-	const lower = desc.toLowerCase();
-	for (const prefix of ["run a ", "run an ", "set up a ", "build a ", "build the ", "turn ", "design the ", "produce a ", "compare ", "simulate ", "inspect ", "write a ", "plan or execute a ", "prepare a "]) {
-		if (lower.startsWith(prefix)) return desc.slice(prefix.length);
-	}
-	return desc;
+export function getQuoteOfTheDay(date: Date): string {
+	return QUOTES_OF_THE_DAY[getDayOfYear(date) % QUOTES_OF_THE_DAY.length]!;
+}
+
+export function formatHeaderDate(date: Date): string {
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, "0");
+	const day = String(date.getDate()).padStart(2, "0");
+	return `${year}-${month}-${day}`;
 }
 
 /** Spinning arc-reactor core: advances on every header render (startup, streaming). */
@@ -197,26 +213,94 @@ function reactorLines(frame: string): string[] {
 	return ["   ╭───╮   ", `───┤ ${frame} ├───`, "   ╰───╯   "];
 }
 
+const GALAXY_FRAMES = [
+	["    .     ·   *   ·     .    ", "       ·  .  ╭─┼─╮  .  ·       ", "    *     ·   ─┼─   ·     *    "],
+	["    ·   *     .     ·   *      ", "       .   ·  ╰─┼─╯  ·   .     ", "    .      *   ─┼─   *      .  "],
+	["    *     ·   .   ·     *      ", "       ·  .  ╭─┼─╮  .  ·       ", "    ·      .   ─┼─   .      ·  "],
+	["    .   ·     *     ·   .      ", "       *   ·  ╰─┼─╯  ·   *     ", "    ·     .    ─┼─   .     ·   "],
+];
+
+function commandChoices(pi: ExtensionAPI): string[] {
+	return pi.getCommands()
+		.filter((command) => typeof command.name === "string" && command.name.length > 0)
+		.sort((a, b) => a.name.localeCompare(b.name))
+		.map((command) => `/${command.name}${command.description ? ` — ${command.description}` : ""}`);
+}
+
+function commandFromChoice(choice: string): string {
+	return choice.split(" — ", 1)[0]!;
+}
+
+function modelCommand(pi: ExtensionAPI): string {
+	const names = new Set(pi.getCommands().map((command) => command.name));
+	if (names.has("researchx-model")) return "/researchx-model";
+	if (names.has("model")) return "/model";
+	return "/researchx-model";
+}
+
 export function installResearchXHeader(
 	pi: ExtensionAPI,
 	ctx: ExtensionContext,
-	cache: { agentSummaryPromise?: Promise<{ agents: string[]; chains: string[] }> },
+	cache: ResearchXHeaderCache,
 ): void | Promise<void> {
 	if (!ctx.hasUI) return;
 
 	cache.agentSummaryPromise ??= buildAgentCatalogSummary();
+	cache.commandContext = ctx;
+	cache.commandPi = pi;
 
 	return cache.agentSummaryPromise.then((agentData) => {
+		if (!cache.commandShortcutsRegistered) {
+			pi.registerShortcut("ctrl+shift+c", {
+				description: "Open the ResearchX command deck",
+				handler: async () => {
+					const activeContext = cache.commandContext;
+					const activePi = cache.commandPi;
+					if (!activeContext?.hasUI || !activePi) return;
+					const selected = await activeContext.ui.select("ALL COMMANDS", commandChoices(activePi));
+					if (selected) activeContext.ui.setEditorText(commandFromChoice(selected));
+				},
+			});
+			pi.registerShortcut("ctrl+shift+h", {
+				description: "Prefill ResearchX help",
+				handler: () => { cache.commandContext?.ui.setEditorText("/help"); },
+			});
+			pi.registerShortcut("ctrl+shift+m", {
+				description: "Prefill the ResearchX model command",
+				handler: () => {
+					const activeContext = cache.commandContext;
+					const activePi = cache.commandPi;
+					if (activeContext && activePi) activeContext.ui.setEditorText(modelCommand(activePi));
+				},
+			});
+			cache.commandShortcutsRegistered = true;
+		}
+
 		const bootAt = Date.now();
 		const resources = detectSystemResources();
-		const workflows = getResearchWorkflows(pi);
 		const toolCount = pi.getAllTools().length;
 		const commandCount = pi.getCommands().length;
 		const agentCount = agentData.agents.length + agentData.chains.length;
 		const activitySnapshot = getRecentActivitySummary(ctx);
 
-		ctx.ui.setHeader((_tui, theme) => ({
-			render(width: number): string[] {
+		ctx.ui.setHeader((tui, theme) => {
+			let pulseIndex = 0;
+			let disposed = false;
+			const requestRender = () => {
+				if (!disposed) tui.requestRender();
+			};
+			cache.headerRequestRender = requestRender;
+			const animationTimer = setInterval(() => {
+				pulseIndex = (pulseIndex + 1) % 4;
+				requestRender();
+			}, 250);
+			// Header animation must never keep test or print-mode processes alive.
+			animationTimer.unref?.();
+
+			const component = {
+				render(width: number): string[] {
+				if (width < 16) return [truncateVisible(`${reactorFrame()} RX`, Math.max(1, width))];
+
 				const maxW = Math.max(width - 2, 1);
 				const cardW = Math.min(maxW, 120);
 				const innerW = cardW - 2;
@@ -246,6 +330,26 @@ export function installResearchXHeader(
 					);
 				};
 
+				const commandPanelLines = (panelW: number): string[] => {
+					const panelLines: string[] = ["", theme.fg("accent", theme.bold("Command Deck"))];
+					for (const line of [
+						"[Ctrl+Shift+C] ALL COMMANDS",
+						"[Ctrl+Shift+H] HELP",
+						"[Ctrl+Shift+M] MODELS",
+					]) {
+						for (const wrapped of wrapWords(line, Math.max(1, panelW))) {
+							panelLines.push(theme.fg("inputText" as Parameters<typeof theme.fg>[0], wrapped));
+						}
+					}
+					panelLines.push(theme.fg("dim", "Ctrl+Shift + key to open"));
+					panelLines.push(theme.fg("accent", theme.bold("NEBULA // LIVE")));
+					const frame = GALAXY_FRAMES[pulseIndex % GALAXY_FRAMES.length]!;
+					for (const galaxyLine of frame) {
+						panelLines.push(theme.fg("dim", centerText(truncateVisible(galaxyLine, panelW), panelW)));
+					}
+					return panelLines;
+				};
+
 				const modelLabel = getCurrentModelLabel(ctx);
 				const sessionId = ctx.sessionManager.getSessionName()?.trim() || ctx.sessionManager.getSessionId();
 				const dirLabel = formatHeaderPath(ctx.cwd);
@@ -263,10 +367,9 @@ export function installResearchXHeader(
 
 				push("");
 				if (cardW >= 70) {
-					const maxLogoW = Math.max(...RESEARCHX_AGENT_LOGO.map((l) => l.length));
-					const logoOffset = " ".repeat(Math.max(0, Math.floor((cardW - maxLogoW) / 2)));
 					for (const logoLine of RESEARCHX_AGENT_LOGO) {
-						push(theme.fg("accent", theme.bold(`${logoOffset}${truncateVisible(logoLine, cardW)}`)));
+						const tileLine = centerText(truncateVisible(logoLine, cardW), cardW);
+						push(theme.fg("borderAccent", theme.bold(tileLine)));
 					}
 					push("");
 				}
@@ -297,9 +400,6 @@ export function installResearchXHeader(
 				);
 
 				if (useWideLayout) {
-					const cmdNameW = 16;
-					const descW = Math.max(10, rightW - cmdNameW - 2);
-
 					const leftValueW = Math.max(1, leftW - 11);
 					const indent = " ".repeat(11);
 					const leftLines: string[] = [""];
@@ -321,6 +421,11 @@ export function installResearchXHeader(
 					pushLabeled("system", sysParts.join(" · "), "dim");
 					leftLines.push("");
 					leftLines.push(theme.fg("dim", `${toolCount} tools · ${agentCount} agents`));
+					const today = new Date();
+					leftLines.push(theme.fg("accent", theme.bold(`${formatHeaderDate(today)} // DAILY SIGNAL`)));
+					for (const line of wrapWords(`"${getQuoteOfTheDay(today)}"`, leftW)) {
+						leftLines.push(theme.fg("dim", line));
+					}
 
 					if (activity) {
 						const maxActivityLen = leftW * 2;
@@ -334,24 +439,7 @@ export function installResearchXHeader(
 						}
 					}
 
-					const rightLines: string[] = [
-						"",
-						theme.fg("accent", theme.bold("Research Workflows")),
-					];
-
-						for (const wf of workflows) {
-							if (wf.name === "/jobs" || wf.name === "/log") continue;
-							const desc = shortDescription(wf.description);
-							const descLines = wrapWords(desc, descW);
-							for (let index = 0; index < descLines.length; index += 1) {
-								const first = index === 0;
-								rightLines.push(
-									first
-										? `${theme.fg("accent", padRight(wf.name, cmdNameW))} ${theme.fg("dim", descLines[index]!)}`
-										: `${" ".repeat(cmdNameW)} ${theme.fg("dim", descLines[index]!)}`,
-								);
-							}
-						}
+					const rightLines = commandPanelLines(rightW);
 
 					const maxRows = Math.max(leftLines.length, rightLines.length);
 					for (let i = 0; i < maxRows; i++) {
@@ -366,25 +454,28 @@ export function installResearchXHeader(
 					const resourceLine = `${resources.cores} cores · ${resources.ramTotal}${resources.docker ? " · docker" : ""}`;
 					push(row(theme.fg("dim", truncateVisible(resourceLine, contentW))));
 					push(row(theme.fg("dim", truncateVisible(`${toolCount} tools · ${agentCount} agents · ${commandCount} commands`, contentW))));
+					const today = new Date();
+					push(row(theme.fg("accent", truncateVisible(`${formatHeaderDate(today)} // "${getQuoteOfTheDay(today)}"`, contentW))));
 					push(emptyRow());
 
 					push(sep());
-					push(row(theme.fg("accent", theme.bold("Research Workflows"))));
-						const narrowDescW = Math.max(1, contentW - 17);
-						for (const wf of workflows) {
-							if (wf.name === "/jobs" || wf.name === "/log") continue;
-							const desc = shortDescription(wf.description);
-							push(row(`${theme.fg("accent", padRight(wf.name, 16))} ${theme.fg("dim", truncateVisible(desc, narrowDescW))}`));
-						}
+					for (const line of commandPanelLines(contentW)) push(row(line));
 				}
 
 				push(sep());
-				push(row(theme.fg("dim", truncateVisible("Type / to browse commands · /help for all workflows · /researchx-model for models", contentW))));
+				push(row(theme.fg("dim", truncateVisible("Type / for commands · Ctrl+Shift+C opens the deck · /help for workflows", contentW))));
 				push(border(`╰${"─".repeat(innerW)}╯`));
 				push("");
 				return lines;
 			},
-			invalidate() {},
-		}));
+				invalidate() {},
+				dispose() {
+					disposed = true;
+					clearInterval(animationTimer);
+					if (cache.headerRequestRender === requestRender) cache.headerRequestRender = undefined;
+				},
+			};
+			return component;
+	});
 	});
 }
