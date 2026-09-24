@@ -69,8 +69,8 @@ test("ResearchX header renders the command deck, date signal, and greeting cat",
 	assert.match(text, /COMPANION/);
 	assert.doesNotMatch(text, /NEBULA/);
 	assert.doesNotMatch(text, /MÖBIUS/);
-	assert.match(text, /Hello!/);
-	assert.match(text, /\\____\//);
+	assert.match(text, /Hello, hooman!/);
+	assert.match(text, /\/\\_\/\\/);
 	assert.match(text, /DAILY SIGNAL/);
 	assert.match(text, new RegExp(formatHeaderDate(new Date())));
 	const quote = getQuoteOfTheDay(new Date());

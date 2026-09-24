@@ -103,6 +103,24 @@ For a local server you may omit `apiKey`. A commented template lives next to it:
 `custom-providers.example.json`. Other subscription logins (Claude Max,
 Copilot, …): `npm run dev -- model login` and pick from the list.
 
+To change a model's context window the Pi-native way, add a `modelOverrides`
+entry to `~/.researchx/agent/models.json` (it wins over provider defaults):
+
+```json
+{
+  "providers": {
+    "openai-codex": {
+      "modelOverrides": {
+        "gpt-5.5": { "contextWindow": 1000000 }
+      }
+    }
+  }
+}
+```
+
+Takes effect for new sessions. For custom providers you can instead set
+`contextWindow` on the model in `custom-providers.json` (default `1000000`).
+
 ## 4. Launch
 
 ```powershell

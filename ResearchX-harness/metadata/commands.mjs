@@ -37,9 +37,9 @@ export function readPromptSpecs(appRoot) {
 export const extensionCommandSpecs = [
 	{ name: "capabilities", args: "", section: "Project & Session", description: "Show installed packages, discovery entrypoints, and runtime capability counts.", publicDocs: true },
 	{ name: "commands", args: "", section: "Project & Session", description: "Browse ResearchX workflow, project, and approved live runtime commands.", publicDocs: true },
+	{ name: "context-window", args: "[value]", section: "Project & Session", description: "View or set the current model's context window (e.g. 512K, 1M).", publicDocs: true },
 	{ name: "help", args: "", section: "Project & Session", description: "Show grouped ResearchX commands and prefill the editor with a selected command.", publicDocs: true },
 	{ name: "researchx-model", args: "", section: "Project & Session", description: "Open ResearchX's approved research model menu (main + per-subagent overrides).", publicDocs: true },
-	{ name: "settings", args: "", section: "Project & Session", description: "ResearchX settings: pick a model to view or set its context window.", publicDocs: true },
 	{ name: "providers", args: "", section: "Project & Session", description: "Show custom API providers from custom-providers.json.", publicDocs: true },
 	{ name: "init", args: "", section: "Project & Session", description: "Bootstrap AGENTS.md and session-log folders for a research project.", publicDocs: true },
 	{ name: "outputs", args: "", section: "Project & Session", description: "Browse all research artifacts (papers, outputs, experiments, notes).", publicDocs: true },
@@ -132,7 +132,6 @@ export const cliCommandSections = [
 			{ usage: "researchx model logout [id]", description: "Clear stored auth for a model provider." },
 			{ usage: "researchx model set <provider/model>", description: "Set the default approved research model (also accepts provider:model)." },
 			{ usage: "researchx model tier [value]", description: "View or set the request service tier override." },
-			{ usage: "researchx model context [model] [value]", description: "View or set a per-model context window (e.g. 512K, 1M)." },
 		],
 	},
 	{

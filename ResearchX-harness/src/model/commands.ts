@@ -783,7 +783,7 @@ async function configureApiKeyProvider(authPath: string, providerId?: string): P
 	return true;
 }
 
-export async function resolveAvailableModelSpec(authPath: string, input: string): Promise<string | undefined> {
+async function resolveAvailableModelSpec(authPath: string, input: string): Promise<string | undefined> {
 	const normalizedInput = input.trim().replace(/^([^/:]+):(.+)$/, "$1/$2").toLowerCase();
 	if (!normalizedInput) {
 		return undefined;

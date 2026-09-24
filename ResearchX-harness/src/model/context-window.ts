@@ -140,7 +140,8 @@ export function mergePersistedModels(
 		const entry: PersistedModelEntry = { id: model.id };
 		const name = model.name ?? prev?.name;
 		if (name) entry.name = name;
-		entry.contextWindow = model.contextWindow ?? prev?.contextWindow ?? DEFAULT_CONTEXT_WINDOW;
+		const contextWindow = model.contextWindow ?? prev?.contextWindow;
+		if (contextWindow !== undefined) entry.contextWindow = contextWindow;
 		const maxTokens = model.maxTokens ?? prev?.maxTokens;
 		if (maxTokens !== undefined) entry.maxTokens = maxTokens;
 		return entry;
@@ -197,11 +198,24 @@ export function persistCustomProvidersModelsJson(file: CustomProvidersFile): voi
 	writeModelsJson(parsed);
 }
 
+/** Read a per-model context-window override from Pi auth storage, if present. */
+export function getModelContextOverride(providerId: string, modelId: string): number | undefined {
+	const parsed = readModelsJson();
+	if (!parsed || !parsed.providers || typeof parsed.providers !== "object") return undefined;
+	const provider = parsed.providers[providerId];
+	if (!provider || typeof provider !== "object") return undefined;
+	const overrides = provider.modelOverrides;
+	if (!overrides || typeof overrides !== "object") return undefined;
+	const entry = (overrides as Record<string, unknown>)[modelId];
+	if (!entry || typeof entry !== "object") return undefined;
+	const value = (entry as Record<string, unknown>).contextWindow;
+	return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
 /**
- * Set a per-model context-window override in Pi auth storage (`modelOverrides`
- * in `<agent-dir>/models.json`). Works for any provider without touching
- * endpoints or keys. Survives relaunch because the custom-provider sync
- * preserves unknown provider fields.
+ * Write a per-model context-window override (Pi's documented `modelOverrides`
+ * layer in `<agent-dir>/models.json`). This is the only write path: no file
+ * syncing, no default stamping, no other surfaces.
  */
 export function setModelContextOverride(providerId: string, modelId: string, contextWindow: number): boolean {
 	const parsed = readModelsJson();
@@ -225,51 +239,4 @@ export function setModelContextOverride(providerId: string, modelId: string, con
 	return writeModelsJson(parsed);
 }
 
-/** Read a per-model context-window override from Pi auth storage, if present. */
-export function getModelContextOverride(providerId: string, modelId: string): number | undefined {
-	const parsed = readModelsJson();
-	if (!parsed || !parsed.providers || typeof parsed.providers !== "object") return undefined;
-	const provider = parsed.providers[providerId];
-	if (!provider || typeof provider !== "object") return undefined;
-	const overrides = provider.modelOverrides;
-	if (!overrides || typeof overrides !== "object") return undefined;
-	const entry = (overrides as Record<string, unknown>)[modelId];
-	if (!entry || typeof entry !== "object") return undefined;
-	const value = (entry as Record<string, unknown>).contextWindow;
-	return typeof value === "number" && Number.isFinite(value) ? value : undefined;
-}
 
-export type ContextWindowWriteResult = {
-	/** models.json override written. */
-	overrideWritten: boolean;
-	/** custom-providers.json updated (model is file-defined). */
-	fileUpdated: boolean;
-	filePath?: string;
-};
-
-/**
- * Central setter used by every settings surface. Writes the models.json
- * override always; additionally writes through to custom-providers.json when
- * the model is file-defined so extension re-registration keeps the value.
- */
-export function setProviderModelContextWindow(
-	providerId: string,
-	modelId: string,
-	contextWindow: number,
-): ContextWindowWriteResult {
-	const result: ContextWindowWriteResult = { overrideWritten: false, fileUpdated: false };
-	const { file, path } = readCustomProvidersFile();
-	const hasFileConfig = (file.providers ?? []).length > 0 || !!file.defaultModel;
-	const entry = hasFileConfig ? (file.providers ?? []).find((candidate) => candidate.id === providerId) : undefined;
-	const fileModel = entry?.models?.find((model) => model.id === modelId);
-	if (fileModel && entry) {
-		fileModel.contextWindow = contextWindow;
-		if (saveCustomProvidersFile(file, path)) {
-			persistCustomProvidersModelsJson(file);
-			result.fileUpdated = true;
-			result.filePath = path;
-		}
-	}
-	result.overrideWritten = setModelContextOverride(providerId, modelId, contextWindow);
-	return result;
-}

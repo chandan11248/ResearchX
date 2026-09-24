@@ -74,16 +74,8 @@ import {
 	loginModelProvider,
 	logoutModelProvider,
 	printModelList,
-	resolveAvailableModelSpec,
 	setDefaultModelSpec,
 } from "./model/commands.js";
-import {
-	formatContextTokens,
-	getModelContextOverride,
-	parseContextValue,
-	readCustomProvidersFile,
-	setProviderModelContextWindow,
-} from "./model/context-window.js";
 import {
 	buildModelStatusSnapshotFromRecords,
 	chooseRecommendedModel,
@@ -273,72 +265,6 @@ async function handleAlphaCommand(action: string | undefined): Promise<void> {
 	throw new Error(`Unknown alpha command: ${action}`);
 }
 
-async function handleModelContextCommand(args: string[], settingsPath: string, authPath: string): Promise<void> {
-	const [first, second] = args;
-	let specInput: string | undefined;
-	let valueRaw: string | undefined;
-	if (first !== undefined && second !== undefined) {
-		specInput = first;
-		valueRaw = second;
-	} else if (first !== undefined) {
-		if (parseContextValue(first) !== undefined) {
-			valueRaw = first;
-		} else {
-			specInput = first;
-		}
-	}
-
-	let spec: string | undefined;
-	if (specInput) {
-		spec = await resolveAvailableModelSpec(authPath, specInput);
-		if (!spec) {
-			throw new Error(`Model not available in Pi auth storage: ${specInput}. Run \`researchx model list\` first.`);
-		}
-	} else {
-		spec = getCurrentModelSpec(settingsPath);
-		if (!spec) {
-			throw new Error("No default model is set. Usage: researchx model context [provider/model] [value] (e.g. 512K, 1M).");
-		}
-	}
-	const slash = spec.indexOf("/");
-	const provider = spec.slice(0, slash);
-	const modelId = spec.slice(slash + 1);
-
-	if (valueRaw === undefined) {
-		const runtime = await createModelRuntime(authPath);
-		const record = (await runtime.getAvailable()).find((model) => model.provider === provider && model.id === modelId);
-		const override = getModelContextOverride(provider, modelId);
-		const { file } = readCustomProvidersFile();
-		const fileValue = (file.providers ?? [])
-			.find((entry) => entry.id === provider)?.models
-			?.find((model) => model.id === modelId)?.contextWindow;
-		const effective = record?.contextWindow ?? override ?? fileValue;
-		const source = override !== undefined
-			? "models.json override"
-			: fileValue !== undefined
-				? "custom-providers.json"
-				: "provider default";
-		console.log(`${spec}: context window ${formatContextTokens(effective)} (${source}).`);
-		console.log(`Set with: researchx model context ${spec} <value> (e.g. 512K, 1M). Applies to new sessions.`);
-		return;
-	}
-
-	const value = parseContextValue(valueRaw);
-	if (value === undefined) {
-		throw new Error(`Invalid context window: ${valueRaw}. Use ${MIN_CONTEXT_HINT}.`);
-	}
-	const result = setProviderModelContextWindow(provider, modelId, value);
-	if (!result.overrideWritten) {
-		throw new Error("Could not persist the context-window override.");
-	}
-	console.log(
-		`Context window for ${spec} set to ${formatContextTokens(value)}` +
-		`${result.fileUpdated ? ` (${result.filePath})` : " (models.json override)"}. Applies to new sessions.`,
-	);
-}
-
-const MIN_CONTEXT_HINT = "1K–100M, e.g. 512K or 1000000";
-
 async function handleModelCommand(subcommand: string | undefined, args: string[], researchxSettingsPath: string, researchxAuthPath: string): Promise<void> {
 	if (!subcommand || subcommand === "list") {
 		await printModelList(researchxSettingsPath, researchxAuthPath);
@@ -367,11 +293,6 @@ async function handleModelCommand(subcommand: string | undefined, args: string[]
 			throw new Error("Usage: researchx model set <provider/model|provider:model>");
 		}
 		await setDefaultModelSpec(researchxSettingsPath, researchxAuthPath, spec);
-		return;
-	}
-
-	if (subcommand === "context") {
-		await handleModelContextCommand(args, researchxSettingsPath, researchxAuthPath);
 		return;
 	}
 

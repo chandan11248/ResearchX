@@ -209,23 +209,26 @@ function bootPhase(bootAt: number): { label: string; ready: boolean } {
 	return { label: "CORE ONLINE", ready: true };
 }
 
-/** Greeting companion: a small cat that blinks every couple of seconds
- * (the header re-renders on a 250ms timer, so the blink plays live). */
+/** Greeting companion: a bubble greeting plus a cat that blinks every
+ * couple of seconds (the header re-renders on a 250ms timer, so the blink
+ * plays live). Both frames share identical widths. */
 const CAT_OPEN = [
-	"    /\\      /\\      ",
-	"    |  \\____/  |    ",
-	"    |  o    o  |    ",
-	"    |    __    |    ",
-	"    |   /  \\   |    ",
-	"     \\_/    \\_/     ",
+	"  ╭────────────────────╮",
+	"  │  ✦ Hello, hooman!  │",
+	"  ╰────────┬───────────╯",
+	"           │   /\\_/\\    ",
+	"           ╰──( o.o )   ",
+	"               > ^ <    ",
+	"              _|   |_   ",
 ];
 const CAT_BLINK = [
-	"    /\\      /\\      ",
-	"    |  \\____/  |    ",
-	"    |  -    -  |    ",
-	"    |    __    |    ",
-	"    |   /  \\   |    ",
-	"     \\_/    \\_/     ",
+	"  ╭────────────────────╮",
+	"  │  ✦ Hello, hooman!  │",
+	"  ╰────────┬───────────╯",
+	"           │   /\\_/\\    ",
+	"           ╰──( -.- )   ",
+	"               > ^ <    ",
+	"              _|   |_   ",
 ];
 
 function catFrame(): string[] {
@@ -356,7 +359,6 @@ export function installResearchXHeader(
 				panelLines.push(theme.fg("dim", "Ctrl+Shift + key to open"));
 				panelLines.push("");
 				panelLines.push(theme.fg("accent", theme.bold("COMPANION")));
-				panelLines.push(centerText(theme.fg("accent", theme.bold("Hello!")), panelW));
 				for (const catLine of catFrame()) {
 					panelLines.push(centerText(catLine, panelW));
 				}
