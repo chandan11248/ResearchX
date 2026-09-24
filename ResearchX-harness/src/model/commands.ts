@@ -35,6 +35,12 @@ type OAuthProviderInfo = {
 	usesCallbackServer?: boolean;
 };
 
+// Short names users type for subscription OAuth logins (e.g. `researchx model login codex`).
+const OAUTH_PROVIDER_ALIASES: Record<string, string> = {
+	codex: "openai-codex",
+	chatgpt: "openai-codex",
+};
+
 async function getOAuthProviders(authPath: string): Promise<OAuthProviderInfo[]> {
 	const modelRuntime = await createModelRuntime(authPath);
 	return modelRuntime
@@ -51,7 +57,13 @@ async function resolveOAuthProvider(authPath: string, input: string): Promise<OA
 	if (!normalizedInput) {
 		return undefined;
 	}
-	return (await getOAuthProviders(authPath)).find((provider) => provider.id.toLowerCase() === normalizedInput);
+	// Friendly aliases for the subscription OAuth providers users ask for by product name.
+	const aliasTarget = OAUTH_PROVIDER_ALIASES[normalizedInput];
+	const providers = await getOAuthProviders(authPath);
+	if (aliasTarget) {
+		return providers.find((provider) => provider.id.toLowerCase() === aliasTarget);
+	}
+	return providers.find((provider) => provider.id.toLowerCase() === normalizedInput);
 }
 
 async function selectOAuthProvider(authPath: string, action: "login" | "logout"): Promise<OAuthProviderInfo | undefined> {
@@ -930,6 +942,10 @@ export async function loginModelProvider(authPath: string, providerId?: string, 
 	});
 
 	printSuccess(`Model provider login complete: ${provider.id}`);
+	if (provider.id === "openai-codex") {
+		printInfo("Codex uses the GPT line on your ChatGPT Plus/Pro subscription (usage follows plan limits).");
+		printInfo("Tip: run `/thinking high` in the app for high reasoning effort on the default GPT model.");
+	}
 
 	await maybeSetRecommendedDefaultModel(settingsPath, authPath);
 
@@ -987,11 +1003,18 @@ export async function runModelSetup(settingsPath: string, authPath: string): Pro
 
 	while (status.availableModels.length === 0) {
 		const choices = [
-			"Custom provider — base URL + API key (the only supported way to add a model)",
+			"Codex / subscription login — ChatGPT Plus/Pro (Codex), Claude Max, Copilot, ... via browser",
+			"Custom provider — base URL + API key (local servers, proxies, pay-per-token APIs)",
 			"Cancel",
 		];
 		const selection = await promptChoice("Choose how to configure model access:", choices, 0);
 		if (selection === 0) {
+			const loggedIn = await loginModelProvider(authPath, undefined, settingsPath);
+			if (!loggedIn) {
+				status = await collectModelStatus(settingsPath, authPath);
+				continue;
+			}
+		} else if (selection === 1) {
 			const configured = await configureApiKeyProvider(authPath);
 			if (!configured) {
 				status = await collectModelStatus(settingsPath, authPath);
@@ -1004,8 +1027,8 @@ export async function runModelSetup(settingsPath: string, authPath: string): Pro
 		status = await collectModelStatus(settingsPath, authPath);
 		if (status.availableModels.length === 0) {
 			printWarning("No authenticated models are available yet.");
-			printInfo("Add one via the custom provider prompt, or write ~/.researchx/custom-providers.json");
-			printInfo("(see custom-providers.example.json), or set base_url + key + model in your project .env.");
+			printInfo("Log in with a subscription (`researchx model login codex`), add one via the custom provider prompt,");
+			printInfo("or write ~/.researchx/custom-providers.json (see custom-providers.example.json).");
 			printInfo("Tip: run `researchx doctor` to see models.json path + load errors.");
 		}
 	}

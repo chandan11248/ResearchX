@@ -3,6 +3,11 @@ import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { AuthEvent, AuthPrompt } from "@earendil-works/pi-ai";
+
+import { choosePreferredModelRecord, getAvailableModelRecords } from "../../src/model/catalog.js";
+import { createModelRuntime } from "../../src/model/registry.js";
+import { openUrl } from "../../src/system/open-url.js";
 
 export interface CustomProviderModel {
 	id: string;
@@ -265,31 +270,244 @@ function nudgeOnUnauthenticatedModel(
 
 export function registerCustomProviderCommand(pi: ExtensionAPI): void {
 	pi.registerCommand("providers", {
-		description: "Show custom API providers from custom-providers.json or project .env.",
-		handler: async (_args, ctx) => {
-			const { file: fileConfig, path, error } = readConfigFile();
-			if (error) {
-				ctx.ui.notify(`custom-providers.json error: ${error}`, "error");
+		description: "Show providers (custom API + subscription OAuth). Usage: /providers [login [codex]]",
+		handler: async (args, ctx) => {
+			const parts = args.trim().split(/\s+/).filter(Boolean);
+			if (parts[0]?.toLowerCase() === "login") {
+				await loginSubscriptionProvider(ctx, parts[1]);
 				return;
 			}
-			const hasFileConfig = (fileConfig.providers ?? []).length > 0 || !!fileConfig.defaultModel;
-			const file = hasFileConfig ? fileConfig : providerFromDotEnv(ctx.cwd);
-			const source = hasFileConfig ? path : `${join(ctx.cwd, ".env")} (dev fallback)`;
-			const entries = file.providers ?? [];
-			if (entries.length === 0) {
-				ctx.ui.notify(
-					`No custom providers. Create ${path} (see custom-providers.example.json) or add base_url + key + model to ${join(ctx.cwd, ".env")}.`,
-					"warning",
-				);
+			// Interactive menu (arrow keys + Enter) when UI is available; plain text otherwise.
+			if (ctx.hasUI && parts.length === 0) {
+				await providersMenu(ctx);
 				return;
 			}
-			const lines = entries.map((entry) => {
-				const models = (entry.models ?? []).map((model) => model.id).join(", ") || "(no models)";
-				const key = entry.apiKey ? "key:set" : "key:missing";
-				return `• ${entry.id} — ${entry.name ?? entry.id} [${key}]\n  ${entry.baseUrl}\n  models: ${models}`;
-			});
-			if (file.defaultModel) lines.push(`default: ${file.defaultModel}`);
-			ctx.ui.notify([`Custom providers (${source}):`, ...lines].join("\n"), "info");
+			await showProvidersStatus(ctx);
 		},
 	});
+}
+
+type ProviderMenuAction =
+	| { type: "login-codex" }
+	| { type: "login-other" }
+	| { type: "view-custom" };
+
+async function providersMenu(ctx: ProviderCommandContext): Promise<void> {
+	const codexOn = await isCodexLoggedIn();
+	const actions: Array<{ label: string; value: ProviderMenuAction }> = [
+		{
+			label: `Login with Codex (ChatGPT Plus/Pro) [${codexOn ? "login:set" : "login:missing"}]`,
+			value: { type: "login-codex" },
+		},
+		{ label: "Other subscription login…", value: { type: "login-other" } },
+		{ label: "View custom providers", value: { type: "view-custom" } },
+	];
+	const picked = await ctx.ui.select("Providers — choose an action (↑↓ + Enter)", actions.map((action) => action.label));
+	const action = actions.find((entry) => entry.label === picked)?.value;
+	if (!action) return;
+	if (action.type === "login-codex") {
+		await loginSubscriptionProvider(ctx, "openai-codex");
+		return;
+	}
+	if (action.type === "login-other") {
+		await loginSubscriptionProvider(ctx, undefined);
+		return;
+	}
+	await showProvidersStatus(ctx);
+}
+
+async function isCodexLoggedIn(): Promise<boolean> {
+	try {
+		const runtime = await createModelRuntime(authPath());
+		const credentials = await runtime.listCredentials();
+		return credentials.some((credential) => credential.providerId === "openai-codex");
+	} catch {
+		return false;
+	}
+}
+
+async function showProvidersStatus(ctx: ProviderCommandContext): Promise<void> {
+	const { file: fileConfig, path, error } = readConfigFile();
+	if (error) {
+		ctx.ui.notify(`custom-providers.json error: ${error}`, "error");
+		return;
+	}
+	const hasFileConfig = (fileConfig.providers ?? []).length > 0 || !!fileConfig.defaultModel;
+	const file = hasFileConfig ? fileConfig : providerFromDotEnv(ctx.cwd);
+	const source = hasFileConfig ? path : `${join(ctx.cwd, ".env")} (dev fallback)`;
+	const entries = file.providers ?? [];
+	const lines: string[] = [];
+	if (entries.length === 0) {
+		lines.push(
+			`No custom providers. Create ${path} (see custom-providers.example.json) or add base_url + key + model to ${join(ctx.cwd, ".env")}.`,
+		);
+	} else {
+		lines.push(`Custom providers (${source}):`);
+		for (const entry of entries) {
+			const models = (entry.models ?? []).map((model) => model.id).join(", ") || "(no models)";
+			const key = entry.apiKey ? "key:set" : "key:missing";
+			lines.push(`• ${entry.id} — ${entry.name ?? entry.id} [${key}]\n  ${entry.baseUrl}\n  models: ${models}`);
+		}
+		if (file.defaultModel) lines.push(`default: ${file.defaultModel}`);
+	}
+	lines.push(...(await subscriptionStatusLines()));
+	ctx.ui.notify(lines.join("\n"), entries.length === 0 ? "warning" : "info");
+}
+
+/** Short names for subscription OAuth logins (mirrors src/model/commands.ts aliases). */
+const SUBSCRIPTION_LOGIN_ALIASES: Record<string, string> = {
+	codex: "openai-codex",
+	chatgpt: "openai-codex",
+};
+
+export function resolveSubscriptionProviderId(input: string | undefined): string | undefined {
+	const normalized = input?.trim().toLowerCase();
+	if (!normalized) return undefined;
+	return SUBSCRIPTION_LOGIN_ALIASES[normalized] ?? normalized;
+}
+
+function authPath(): string {
+	return resolve(agentDir(), "auth.json");
+}
+
+async function subscriptionStatusLines(): Promise<string[]> {
+	try {
+		const runtime = await createModelRuntime(authPath());
+		const credentials = await runtime.listCredentials();
+		const codexOn = credentials.some((credential) => credential.providerId === "openai-codex");
+		return [
+			"Subscription logins (OAuth):",
+			`• openai-codex — OpenAI Codex (ChatGPT Plus/Pro) [${codexOn ? "login:set" : "login:missing"}]`,
+			"  configure: /providers login codex",
+		];
+	} catch {
+		return [
+			"Subscription logins (OAuth):",
+			"• openai-codex — status unknown",
+			"  configure: /providers login codex",
+		];
+	}
+}
+
+type ProviderCommandContext = Parameters<Parameters<ExtensionAPI["registerCommand"]>[1]["handler"]>[1];
+
+async function loginSubscriptionProvider(ctx: ProviderCommandContext, rawId: string | undefined): Promise<void> {
+	if (!ctx.hasUI) {
+		ctx.ui.notify("Provider login requires interactive mode. Run `researchx model login codex` from a terminal instead.", "error");
+		return;
+	}
+	let runtime: Awaited<ReturnType<typeof createModelRuntime>>;
+	try {
+		runtime = await createModelRuntime(authPath());
+	} catch (error) {
+		ctx.ui.notify(`Could not open model auth storage: ${error instanceof Error ? error.message : String(error)}`, "error");
+		return;
+	}
+	const oauthProviders = runtime.getProviders().filter((provider) => Boolean(provider.auth?.oauth));
+	let providerId = resolveSubscriptionProviderId(rawId);
+	if (!providerId) {
+		const ordered = [...oauthProviders].sort(
+			(left, right) => Number(right.id === "openai-codex") - Number(left.id === "openai-codex"),
+		);
+		const picked = await ctx.ui.select(
+			"Subscription login",
+			ordered.map((provider) => `${provider.auth.oauth?.name ?? provider.name ?? provider.id} — ${provider.id}`),
+		);
+		if (!picked) return;
+		providerId = ordered.find((provider) => picked.endsWith(provider.id))?.id;
+		if (!providerId) return;
+	}
+	const target = oauthProviders.find((provider) => provider.id.toLowerCase() === providerId?.toLowerCase());
+	if (!target) {
+		ctx.ui.notify(`Unknown subscription provider: ${rawId}. Try /providers login codex.`, "error");
+		return;
+	}
+	const abort = new AbortController();
+	try {
+		await runtime.login(target.id, "oauth", {
+			prompt: async (prompt: AuthPrompt) => {
+				if (prompt.type === "select") {
+					const picked = await ctx.ui.select(prompt.message, prompt.options.map((option) => option.label));
+					const found = prompt.options.find((option) => option.label === picked);
+					if (!found) throw new Error("Login cancelled.");
+					return found.id;
+				}
+				const value = await ctx.ui.input(prompt.message, prompt.placeholder);
+				if (!value) throw new Error("Login cancelled.");
+				return value;
+			},
+			notify: (event: AuthEvent) => {
+				if (event.type === "auth_url") {
+					const opened = openUrl(event.url);
+					ctx.ui.notify(
+						opened
+							? `Browser opened for login. Complete it there to finish.\n${event.url}`
+							: `Open this URL to log in:\n${event.url}`,
+						"info",
+					);
+				} else if (event.type === "device_code") {
+					openUrl(event.verificationUri);
+					ctx.ui.notify(`Visit ${event.verificationUri} and enter code: ${event.userCode}`, "info");
+				} else {
+					ctx.ui.notify(event.message, "info");
+				}
+			},
+			signal: abort.signal,
+		});
+	} catch (error) {
+		ctx.ui.notify(`Login failed: ${error instanceof Error ? error.message : String(error)}`, "error");
+		return;
+	}
+	ctx.ui.notify(`${target.id} login complete.`, "info");
+	await maybeSetSubscriptionDefault(ctx, target.id);
+}
+
+async function maybeSetSubscriptionDefault(ctx: ProviderCommandContext, providerId: string): Promise<void> {
+	try {
+		const available = await getAvailableModelRecords(authPath());
+		const mine = available.filter((model) => model.provider === providerId);
+		if (mine.length === 0) {
+			ctx.ui.notify("Logged in, but no models are available for this provider yet.", "warning");
+			return;
+		}
+		const settingsPath = resolve(agentDir(), "settings.json");
+		let current: string | undefined;
+		try {
+			const settings = JSON.parse(readFileSync(settingsPath, "utf8")) as {
+				defaultProvider?: unknown;
+				defaultModel?: unknown;
+			};
+			if (typeof settings.defaultProvider === "string" && typeof settings.defaultModel === "string") {
+				current = `${settings.defaultProvider}/${settings.defaultModel}`;
+			}
+		} catch {
+			current = undefined;
+		}
+		if (current && available.some((model) => `${model.provider}/${model.id}` === current)) {
+			ctx.ui.notify(
+				`Kept current default ${current}. Pick a ${providerId} model for this session in /researchx-model.`,
+				"info",
+			);
+			return;
+		}
+		const preferred = choosePreferredModelRecord(mine) ?? mine[0]!;
+		const slash = preferred ? `${preferred.provider}/${preferred.id}` : undefined;
+		if (!slash) return;
+		const settings = (() => {
+			try {
+				return JSON.parse(readFileSync(settingsPath, "utf8")) as Record<string, unknown>;
+			} catch {
+				return {};
+			}
+		})();
+		settings.defaultProvider = preferred!.provider;
+		settings.defaultModel = preferred!.id;
+		writeFileSync(settingsPath, `${JSON.stringify(settings, null, 2)}\n`, "utf8");
+		ctx.ui.notify(
+			`Default model set to ${slash} (GPT line on your subscription). This session still uses the old model — switch now in /researchx-model; new sessions use the default. Tip: /thinking high for high reasoning.`,
+			"info",
+		);
+	} catch (error) {
+		ctx.ui.notify(`Could not set default model: ${error instanceof Error ? error.message : String(error)}`, "warning");
+	}
 }

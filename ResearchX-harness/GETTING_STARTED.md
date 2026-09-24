@@ -45,8 +45,20 @@ the Pi runtime workspace automatically — allow 1–2 extra minutes.
 
 ## 3. Connect a model (one time)
 
-ResearchX only uses **custom model providers** — there is no built-in vendor login.
-Create the file `%USERPROFILE%\.researchx\custom-providers.json`
+**Option A — Codex login (recommended if you have ChatGPT Plus/Pro).**
+Uses the GPT line on your subscription, no API key needed:
+
+```powershell
+npm run dev -- model login codex
+```
+
+Pick `Browser login` (or `Device code login` on headless/SSH), complete it in
+the browser, and ResearchX sets the newest Codex GPT as your default. Inside
+the app, `/thinking high` raises reasoning effort.
+
+**Option B — custom provider.** Any OpenAI-compatible endpoint works
+(OpenRouter, LM Studio at `http://localhost:1234/v1`, Ollama/vLLM `/v1`,
+LiteLLM proxy, …). Create the file `%USERPROFILE%\.researchx\custom-providers.json`
 (macOS/Linux: `~/.researchx/custom-providers.json`):
 
 ```json
@@ -73,10 +85,9 @@ Create the file `%USERPROFILE%\.researchx\custom-providers.json`
 }
 ```
 
-Any OpenAI-compatible endpoint works (OpenRouter, LM Studio at
-`http://localhost:1234/v1`, Ollama/vLLM `/v1`, LiteLLM proxy, …).
 For a local server you may omit `apiKey`. A commented template lives next to it:
-`custom-providers.example.json`.
+`custom-providers.example.json`. Other subscription logins (Claude Max,
+Copilot, …): `npm run dev -- model login` and pick from the list.
 
 ## 4. Launch
 
@@ -86,7 +97,7 @@ npm run dev
 
 You should see the blue **RESEARCHX** banner. Inside the app:
 
-- `/providers` — confirms your custom provider shows `key:set`
+- `/providers` — all providers: custom (`key:set`) plus subscription logins; `/providers login codex` logs in without leaving the app
 - `/researchx-model` — switch models
 - `/help` — all commands; `/kaggle` runs experiments (see below)
 - Just type normally for anything else — research, coding, writing, analysis.

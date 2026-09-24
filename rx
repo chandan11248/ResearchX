@@ -4,7 +4,8 @@
 export PATH="$HOME/.local/share/fnm:$PATH"
 eval "$(fnm env)" 2>/dev/null || true
 fnm use 24 >/dev/null 2>&1 || true
-# ResearchX uses only custom providers (custom-providers.json or project .env).
+# Default model comes from custom-providers.json or project .env (see /providers in-app;
+# subscription logins like Codex work too: /providers login codex).
 # Ignore stale vendor keys that would otherwise look "configured" and 401.
 unset ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN ANTHROPIC_API_KEY ANTHROPIC_MODEL
 unset ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_OPUS_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL
