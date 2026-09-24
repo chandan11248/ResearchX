@@ -6,11 +6,12 @@ import {
 } from "../pi/web-access.js";
 import { printInfo } from "../ui/terminal.js";
 
-const SEARCH_PROVIDERS: PiWebSearchProvider[] = ["auto", "perplexity", "exa", "gemini"];
+const SEARCH_PROVIDERS: PiWebSearchProvider[] = ["auto", "perplexity", "exa", "gemini", "tinyfish"];
 const PROVIDER_API_KEY_FIELDS: Partial<Record<PiWebSearchProvider, keyof PiWebAccessConfig>> = {
 	perplexity: "perplexityApiKey",
 	exa: "exaApiKey",
 	gemini: "geminiApiKey",
+	tinyfish: "tinyfishApiKey",
 };
 
 export function printSearchStatus(status = getPiWebAccessStatus()): void {
@@ -22,6 +23,7 @@ export function printSearchStatus(status = getPiWebAccessStatus()): void {
 	printInfo(`Perplexity API configured: ${status.perplexityConfigured ? "yes" : "no"}`);
 	printInfo(`Exa API configured: ${status.exaConfigured ? "yes" : "no"}`);
 	printInfo(`Gemini API configured: ${status.geminiApiConfigured ? "yes" : "no"}`);
+	printInfo(`TinyFish API configured: ${status.tinyfishConfigured ? "yes" : "no"}`);
 	printInfo(`Gemini browser fallback: ${status.geminiBrowserEnabled ? "enabled" : "disabled"}`);
 	if (status.geminiBrowserEnabled && status.chromeProfile) {
 		printInfo(`Gemini browser profile: ${status.chromeProfile}`);
@@ -33,6 +35,7 @@ export function printSearchStatus(status = getPiWebAccessStatus()): void {
 		printInfo("  researchx search set perplexity <api-key>");
 		printInfo("  researchx search set exa <api-key>");
 		printInfo("  researchx search set gemini <api-key>");
+		printInfo("  researchx search set tinyfish <api-key>");
 	}
 }
 

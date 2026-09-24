@@ -204,7 +204,11 @@ export async function runSetup(options: SetupOptions): Promise<void> {
 		printInfo(`Model: ${getCurrentModelSpec(options.settingsPath) ?? "not set"}`);
 		printInfo(`alphaXiv: ${isAlphaLoggedIn() ? "configured" : "not configured"}`);
 		printInfo(`Preview: ${resolveExecutable("pandoc", PANDOC_FALLBACK_PATHS) ? "configured" : "not configured"}`);
-		printInfo(`Web: ${getPiWebAccessStatus().routeLabel}`);
+		const webStatus = getPiWebAccessStatus();
+		printInfo(`Web: ${webStatus.routeLabel}`);
+		if (!webStatus.perplexityConfigured && !webStatus.exaConfigured && !webStatus.geminiApiConfigured && !webStatus.tinyfishConfigured) {
+			printInfo("Web search not configured. For free search: researchx search set tinyfish <api-key> (key at https://agent.tinyfish.ai/api-keys).");
+		}
 		if (modelStatus.recommended && !modelStatus.currentValid) {
 			printInfo(`Recommended model: ${modelStatus.recommended}`);
 		}

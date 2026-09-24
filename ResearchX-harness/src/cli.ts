@@ -474,9 +474,9 @@ function handleSearchCommand(subcommand: string | undefined, args: string[]): vo
 
 	if (subcommand === "set") {
 		const provider = args[0] as PiWebSearchProvider | undefined;
-		const validProviders: PiWebSearchProvider[] = ["auto", "perplexity", "exa", "gemini"];
+		const validProviders: PiWebSearchProvider[] = ["auto", "perplexity", "exa", "gemini", "tinyfish"];
 		if (!provider || !validProviders.includes(provider)) {
-			throw new Error("Usage: researchx search set <auto|perplexity|exa|gemini> [api-key]");
+			throw new Error("Usage: researchx search set <auto|perplexity|exa|gemini|tinyfish> [api-key]");
 		}
 		setSearchProvider(provider, args[1]);
 		return;

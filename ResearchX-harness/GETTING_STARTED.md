@@ -109,7 +109,21 @@ Test it: `kaggle kernels list --mine --page-size 1`
 In the app, `/kaggle <experiment>` writes code locally, pushes a GPU kernel,
 checks status every 10 minutes, and downloads results to `outputs/kaggle/`.
 
-## 6. Developing (the daily loop)
+## 6. Web search (optional, free)
+
+ResearchX ships a `tinyfish_search` tool for latest/current topics. It needs
+only a free key:
+
+1. Get a key at https://agent.tinyfish.ai/api-keys (Search is free).
+2. Save it: `researchx search set tinyfish <api-key>` (stored in
+   `~/.researchx/web-search.json`), or set `TINYFISH_API_KEY` in your shell /
+   `.env` (see `.env.example`).
+3. Check it: `researchx search status` should show `TinyFish API configured: yes`.
+
+Without any provider, Pi's built-in `web_search` stays unconfigured and the
+agent will report that capability as blocked.
+
+## 7. Developing (the daily loop)
 
 ```powershell
 git pull origin main        # update (this repo is standalone — no upstream)

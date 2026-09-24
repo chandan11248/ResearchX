@@ -2,7 +2,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "n
 import { dirname, resolve } from "node:path";
 import { getResearchXHome } from "../config/paths.js";
 
-export type PiWebSearchProvider = "auto" | "perplexity" | "exa" | "gemini";
+export type PiWebSearchProvider = "auto" | "perplexity" | "exa" | "gemini" | "tinyfish";
 export type PiWebSearchWorkflow = "none" | "summary-review";
 
 export type PiWebAccessConfig = Record<string, unknown> & {
@@ -13,6 +13,7 @@ export type PiWebAccessConfig = Record<string, unknown> & {
 	perplexityApiKey?: string;
 	exaApiKey?: string;
 	geminiApiKey?: string;
+	tinyfishApiKey?: string;
 	chromeProfile?: string;
 	geminiBrowser?: boolean;
 	allowBrowserAuth?: boolean;
@@ -28,6 +29,7 @@ export type PiWebAccessStatus = {
 	perplexityConfigured: boolean;
 	exaConfigured: boolean;
 	geminiApiConfigured: boolean;
+	tinyfishConfigured: boolean;
 	chromeProfile?: string;
 	geminiBrowserEnabled: boolean;
 	routeLabel: string;
@@ -44,7 +46,7 @@ export function getPiWebSearchConfigPath(home?: string): string {
 }
 
 function normalizeProvider(value: unknown): PiWebSearchProvider | undefined {
-	return value === "auto" || value === "perplexity" || value === "exa" || value === "gemini" ? value : undefined;
+	return value === "auto" || value === "perplexity" || value === "exa" || value === "gemini" || value === "tinyfish" ? value : undefined;
 }
 
 function normalizeWorkflow(value: unknown): PiWebSearchWorkflow | undefined {
@@ -106,6 +108,8 @@ function formatRouteLabel(provider: PiWebSearchProvider): string {
 			return "Exa";
 		case "gemini":
 			return "Gemini";
+		case "tinyfish":
+			return "TinyFish";
 		default:
 			return "Auto";
 	}
@@ -119,6 +123,8 @@ function formatRouteNote(provider: PiWebSearchProvider): string {
 			return "Pi web-access will use Exa for search.";
 		case "gemini":
 			return "Pi web-access will use Gemini API. Browser-cookie fallback is opt-in.";
+		case "tinyfish":
+			return "ResearchX will use TinyFish free search via tinyfish_search.";
 		default:
 			return "Pi web-access will try Exa, then Perplexity, then Gemini API. Browser-cookie fallback is opt-in.";
 	}
@@ -135,6 +141,9 @@ export function getPiWebAccessStatus(
 	const perplexityConfigured = Boolean(normalizeNonEmptyString(config.perplexityApiKey));
 	const exaConfigured = Boolean(normalizeNonEmptyString(config.exaApiKey));
 	const geminiApiConfigured = Boolean(normalizeNonEmptyString(config.geminiApiKey));
+	const tinyfishConfigured =
+		Boolean(normalizeNonEmptyString(config.tinyfishApiKey)) ||
+		Boolean(process.env.TINYFISH_API_KEY?.trim() || process.env.tiny_fish_api?.trim());
 	const chromeProfile = normalizeNonEmptyString(config.chromeProfile);
 	const geminiBrowserEnabled = normalizeBooleanFlag(config.geminiBrowser ?? config.allowBrowserAuth ?? config.browserAuth);
 	const effectiveProvider = searchProvider;
@@ -148,6 +157,7 @@ export function getPiWebAccessStatus(
 		perplexityConfigured,
 		exaConfigured,
 		geminiApiConfigured,
+		tinyfishConfigured,
 		chromeProfile,
 		geminiBrowserEnabled,
 		routeLabel: formatRouteLabel(effectiveProvider),
@@ -167,6 +177,7 @@ export function formatPiWebAccessDoctorLines(
 		`  perplexity api: ${status.perplexityConfigured ? "configured" : "not configured"}`,
 		`  exa api: ${status.exaConfigured ? "configured" : "not configured"}`,
 		`  gemini api: ${status.geminiApiConfigured ? "configured" : "not configured"}`,
+		`  tinyfish api: ${status.tinyfishConfigured ? "configured" : "not configured"}`,
 		`  gemini browser fallback: ${status.geminiBrowserEnabled ? "enabled" : "disabled"}`,
 		`  config path: ${status.configPath}${configPathSuffix}`,
 		`  note: ${status.note}`,
@@ -175,7 +186,7 @@ export function formatPiWebAccessDoctorLines(
 		lines.splice(8, 0, `  gemini browser profile: ${status.chromeProfile}`);
 	}
 	if (!status.configExists) {
-		lines.push("  hint: run `researchx search set <auto|perplexity|exa|gemini> [api-key]` to configure web search");
+		lines.push("  hint: run `researchx search set <auto|perplexity|exa|gemini|tinyfish> [api-key]` to configure web search");
 	}
 	return lines;
 }

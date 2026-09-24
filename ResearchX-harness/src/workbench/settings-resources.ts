@@ -662,6 +662,7 @@ function buildNetworkResources(settings: WorkbenchSettings): WorkbenchResource[]
 				`Perplexity API: ${webStatus.perplexityConfigured ? "configured" : "not configured"}.`,
 				`Exa API: ${webStatus.exaConfigured ? "configured" : "not configured"}.`,
 				`Gemini API: ${webStatus.geminiApiConfigured ? "configured" : "not configured"}.`,
+				`TinyFish API: ${webStatus.tinyfishConfigured ? "configured" : "not configured"}.`,
 				`Gemini browser fallback: ${webStatus.geminiBrowserEnabled ? "enabled" : "disabled"}.`,
 			],
 			tags: ["search", "web", webStatus.routeLabel.toLowerCase()],
