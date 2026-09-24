@@ -60,3 +60,41 @@ test("ResearchX header truncates long workflow names within terminal width", asy
 		assert.doesNotMatch(lines.join("\n"), /\/gather-context-and-clarifyUse/);
 	}
 });
+
+test("ResearchX header shows reactor boot status without agent skill lists", async () => {
+	let headerFactory: HeaderFactory | undefined;
+	const pi = {
+		getCommands: () => [
+			{ source: "prompt", name: "lit", description: "Run a literature review." },
+		],
+		getAllTools: () => new Array(3),
+	};
+	const ctx = {
+		hasUI: true,
+		model: { provider: "openai", id: "gpt-5.5" },
+		cwd: process.cwd(),
+		sessionManager: {
+			getBranch: () => [],
+			getSessionName: () => "test",
+			getSessionId: () => "session-1",
+		},
+		ui: {
+			setHeader: (factory: HeaderFactory) => {
+				headerFactory = factory;
+			},
+		},
+	};
+
+	await installResearchXHeader(pi as any, ctx as any, {});
+	assert.ok(headerFactory);
+
+	const theme = {
+		fg: (_color: string, text: string) => text,
+		bold: (text: string) => text,
+	};
+	const text = headerFactory(undefined, theme).render(100).join("\n");
+	assert.match(text, /INITIALIZING|CALIBRATING|CORE ONLINE/);
+	assert.match(text, /Type \/ to browse commands/);
+	assert.doesNotMatch(text, /Agents & Chains/);
+	assert.doesNotMatch(text, /^Agents$/m);
+});
