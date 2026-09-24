@@ -131,6 +131,7 @@ export const cliCommandSections = [
 			{ usage: "researchx model logout [id]", description: "Clear stored auth for a model provider." },
 			{ usage: "researchx model set <provider/model>", description: "Set the default approved research model (also accepts provider:model)." },
 			{ usage: "researchx model tier [value]", description: "View or set the request service tier override." },
+			{ usage: "researchx model context [model] [value]", description: "View or set a per-model context window (e.g. 512K, 1M)." },
 		],
 	},
 	{

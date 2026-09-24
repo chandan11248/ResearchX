@@ -4,16 +4,6 @@ import { basename, join, resolve } from "node:path";
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-import {
-	DEFAULT_CONTEXT_WINDOW,
-	getModelContextOverride,
-	readCustomProvidersFile,
-	registerProviderEntry,
-	saveCustomProvidersFile,
-	persistCustomProvidersModelsJson,
-	setModelContextOverride,
-} from "./custom-providers.js";
-
 const FRONTMATTER_PATTERN = /^---\n([\s\S]*?)\n---\n?([\s\S]*)$/;
 const INHERIT_MAIN = "__inherit_main__";
 
@@ -39,41 +29,13 @@ type CommandContext = Parameters<Parameters<ExtensionAPI["registerCommand"]>[1][
 
 type TargetChoice =
 	| { type: "main" }
-	| { type: "context"; provider: string; id: string }
 	| { type: "subagent"; agent: string; model?: string };
-
-function modelContextWindow(model: { provider: string; id: string; contextWindow?: unknown }): number | undefined {
-	const override = getModelContextOverride(model.provider, model.id);
-	if (override !== undefined) return override;
-	return typeof model.contextWindow === "number" && Number.isFinite(model.contextWindow)
-		? model.contextWindow
-		: undefined;
-}
 
 export function formatTokens(value: number | undefined): string {
 	if (value === undefined) return "unknown";
 	if (value >= 1_000_000 && value % 1_000_000 === 0) return `${value / 1_000_000}M`;
 	if (value >= 1_000 && value % 1_000 === 0) return `${value / 1_000}K`;
 	return String(value);
-}
-
-const CONTEXT_PRESETS: Array<{ label: string; value: number }> = [
-	{ label: "128K", value: 128_000 },
-	{ label: "512K", value: 512_000 },
-	{ label: "1M (ResearchX default)", value: DEFAULT_CONTEXT_WINDOW },
-	{ label: "2M", value: 2_000_000 },
-	{ label: "Custom…", value: -1 },
-];
-
-function parseContextInput(raw: string): number | undefined {
-	const normalized = raw.trim().toLowerCase().replace(/,/g, "");
-	if (!normalized) return undefined;
-	const multiplier = normalized.endsWith("m") ? 1_000_000 : normalized.endsWith("k") ? 1_000 : 1;
-	const numeric = Number(multiplier === 1 ? normalized : normalized.slice(0, -1));
-	if (!Number.isFinite(numeric) || numeric <= 0) return undefined;
-	const value = Math.floor(numeric * multiplier);
-	if (value < 1_000 || value > 100_000_000) return undefined;
-	return value;
 }
 
 function expandHomePath(value: string): string {
@@ -266,60 +228,6 @@ async function selectOption<T>(
 	return options.find((option) => option.label === selected)?.value;
 }
 
-async function setMainContextWindow(
-	ctx: CommandContext,
-	provider: string,
-	id: string,
-): Promise<void> {
-	const picked = await selectOption(
-		ctx,
-		`Context window for ${provider}/${id}`,
-		CONTEXT_PRESETS.map((preset) => ({ label: preset.label, value: preset.value })),
-	);
-	if (picked === undefined) return;
-	let value = picked;
-	if (picked === -1) {
-		const raw = await ctx.ui.input("Custom context window (e.g. 128K, 1M, 2000000)", "1000000");
-		if (raw === undefined) return;
-		const parsed = parseContextInput(raw);
-		if (parsed === undefined) {
-			ctx.ui.notify("Invalid context window. Use 1K–100M, e.g. 512K or 1000000.", "error");
-			return;
-		}
-		value = parsed;
-	}
-	// Write through to custom-providers.json when the model is file-defined so
-	// the value survives relaunch; modelOverrides cover every other provider.
-	const { file, path } = readCustomProvidersFile();
-	const hasFileConfig = (file.providers ?? []).length > 0 || !!file.defaultModel;
-	const entry = hasFileConfig ? (file.providers ?? []).find((candidate) => candidate.id === provider) : undefined;
-	const fileModel = entry?.models?.find((model) => model.id === id);
-	let persisted = `modelOverrides for ${provider}/${id}`;
-	if (fileModel && entry) {
-		fileModel.contextWindow = value;
-		if (!saveCustomProvidersFile(file, path)) {
-			ctx.ui.notify(`Could not write ${path}; override saved to auth storage only.`, "warning");
-		} else {
-			persistCustomProvidersModelsJson(file);
-			registerProviderEntry(ctx.modelRegistry, entry);
-			persisted = `${path} (+ live registry)`;
-		}
-	}
-	if (!setModelContextOverride(provider, id, value)) {
-		ctx.ui.notify("Could not persist the context-window override.", "error");
-		return;
-	}
-	try {
-		await ctx.modelRegistry.refresh();
-	} catch {
-		// Best effort; new sessions always pick the override up from disk.
-	}
-	ctx.ui.notify(
-		`Context window for ${provider}/${id} set to ${formatTokens(value)} (persisted in ${persisted}). New sessions use it; reopen this menu to confirm. Oversized values fail at the provider if the backend supports less.`,
-		"info",
-	);
-}
-
 export function registerResearchXModelCommand(pi: ExtensionAPI): void {
 	pi.registerCommand("researchx-model", {
 		description: "Open ResearchX model menu (main + per-subagent overrides).",
@@ -342,18 +250,9 @@ export function registerResearchXModelCommand(pi: ExtensionAPI): void {
 				const agentDir = resolveResearchXAgentDir();
 				const subagentConfigs = listSubagentModelConfigs(agentDir);
 				const currentMain = ctx.model ? formatModelSpec(ctx.model) : "(none)";
-				const currentMainWindow = ctx.model
-					? formatTokens(modelContextWindow(ctx.model as { provider: string; id: string; contextWindow?: unknown }))
-					: "unknown";
 
 				const targetOptions: SelectOption<TargetChoice>[] = [
 					{ label: `main (default): ${currentMain}`, value: { type: "main" } },
-					{
-						label: `context window: ${currentMainWindow} (main model)`,
-						value: ctx.model
-							? { type: "context" as const, provider: ctx.model.provider, id: ctx.model.id }
-							: { type: "main" as const },
-					},
 					...subagentConfigs.map((config) => ({
 						label: `${config.agent}: ${config.model ?? "default"}`,
 						value: { type: "subagent" as const, agent: config.agent, model: config.model },
@@ -362,11 +261,6 @@ export function registerResearchXModelCommand(pi: ExtensionAPI): void {
 
 				const target = await selectOption(ctx, "Choose target", targetOptions);
 				if (!target) return;
-
-				if (target.type === "context") {
-					await setMainContextWindow(ctx, target.provider, target.id);
-					return;
-				}
 
 				if (target.type === "main") {
 					const selectedModel = await selectOption(
