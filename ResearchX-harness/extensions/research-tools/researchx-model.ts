@@ -50,7 +50,7 @@ function modelContextWindow(model: { provider: string; id: string; contextWindow
 		: undefined;
 }
 
-function formatTokens(value: number | undefined): string {
+export function formatTokens(value: number | undefined): string {
 	if (value === undefined) return "unknown";
 	if (value >= 1_000_000 && value % 1_000_000 === 0) return `${value / 1_000_000}M`;
 	if (value >= 1_000 && value % 1_000 === 0) return `${value / 1_000}K`;

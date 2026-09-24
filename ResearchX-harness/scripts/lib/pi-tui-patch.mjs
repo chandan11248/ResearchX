@@ -483,6 +483,7 @@ export function patchPiInteractiveThemeSource(source) {
 	// ResearchX: the input editor renders typed text with the theme's
 	// "inputText" color (falls back to "text" when a theme omits it), so the
 	// input area can carry its own accent without recoloring all text.
+	// The editor frame uses "borderAccent" instead of invisible spaces.
 	if (!patched.includes('theme.fg("inputText"')) {
 		patched = patched
 			.replace(
@@ -497,6 +498,16 @@ export function patchPiInteractiveThemeSource(source) {
 				"searchMatchText: fgColors.searchMatchText ?? fgColors.text,",
 				'searchMatchText: fgColors.searchMatchText ?? fgColors.text,\n            inputText: fgColors.inputText ?? fgColors.text,',
 			);
+	}
+	if (!patched.includes('borderColor: (text) => theme.fg("borderAccent", text),')) {
+		const before = patched;
+		patched = patched.replace(
+			'borderColor: (text) => " ".repeat(text.length),',
+			'borderColor: (text) => theme.fg("borderAccent", text),',
+		);
+		if (patched === before) {
+			throw new Error("Unsupported Pi interactive theme layout: required editor-border patch anchor was not found");
+		}
 	}
 	if (!patched.includes('theme.fg("inputText"')) {
 		throw new Error("Unsupported Pi interactive theme layout: required input-text patch anchor was not found");

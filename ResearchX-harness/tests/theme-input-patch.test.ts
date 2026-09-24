@@ -41,6 +41,7 @@ test("theme patch routes editor input through the inputText color with fallbacks
 	assert.match(patched, /theme\.fg\("inputText"/);
 	assert.match(patched, /inputText: colors\.inputText \?\? colors\.text,/);
 	assert.match(patched, /inputText: fgColors\.inputText \?\? fgColors\.text,/);
+	assert.match(patched, /borderColor: \(text\) => theme\.fg\("borderAccent", text\),/);
 });
 
 test("theme patch is idempotent", () => {
