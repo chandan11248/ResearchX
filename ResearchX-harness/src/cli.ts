@@ -66,6 +66,7 @@ import {
 	type PaperScore,
 } from "./rank/paper-rank.js";
 import { getConfiguredServiceTier, normalizeServiceTier, setConfiguredServiceTier } from "./model/service-tier.js";
+import { formatOpenCodeProviderError } from "./model/opencode.js";
 import {
 	authenticateModelProvider,
 	getCurrentModelSpec,
@@ -636,7 +637,7 @@ export function resolveRankSynthesisTerminalText(message: AssistantMessage | und
 	}
 	if (message.stopReason === "error") {
 		const detail = message.errorMessage?.trim();
-		throw new Error(detail ? `Model synthesis provider failed: ${detail}` : "Model synthesis provider failed.");
+		throw new Error(detail ? `Model synthesis provider failed: ${formatOpenCodeProviderError(detail)}` : "Model synthesis provider failed.");
 	}
 	if (message.stopReason === "aborted") {
 		throw new Error("Model synthesis was aborted before completion.");

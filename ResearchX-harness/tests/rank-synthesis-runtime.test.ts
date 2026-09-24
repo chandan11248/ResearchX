@@ -105,6 +105,19 @@ test("PaperRank reads only the finalized assistant message", () => {
 	);
 });
 
+test("PaperRank explains OpenCode free-tier policy errors as upstream limitations", () => {
+	assert.throws(
+		() =>
+			resolveRankSynthesisTerminalText(
+				fauxAssistantMessage("", {
+					stopReason: "error",
+					errorMessage: "403 FreeTierError: OpenCode's free tier can only be used from within OpenCode.",
+				}),
+			),
+		/upstream.*paid\/authorized OpenCode Zen or OpenCode Go API key/i,
+	);
+});
+
 test("PaperRank records output-limit truncation as a failed synthesis stage", async () => {
 	const outputDir = mkdtempSync(join(tmpdir(), "researchx-rank-provider-length-"));
 	const partialMessage = fauxAssistantMessage(

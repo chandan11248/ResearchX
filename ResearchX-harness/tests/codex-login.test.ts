@@ -25,6 +25,17 @@ test("resolveModelProviderForCommand still resolves the full openai-codex id", a
 	assert.deepEqual(resolved, { kind: "oauth", id: "openai-codex" });
 });
 
+test("resolveModelProviderForCommand normalizes OpenCode Zen and Go API-key ids", async () => {
+	assert.deepEqual(await resolveModelProviderForCommand(tempAuthPath(), " OpenCode "), {
+		kind: "api-key",
+		id: "opencode",
+	});
+	assert.deepEqual(await resolveModelProviderForCommand(tempAuthPath(), "OpenCode-Go"), {
+		kind: "api-key",
+		id: "opencode-go",
+	});
+});
+
 test("resolveModelProviderForCommand returns undefined for unknown providers", async () => {
 	const resolved = await resolveModelProviderForCommand(tempAuthPath(), "not-a-provider");
 	assert.equal(resolved, undefined);

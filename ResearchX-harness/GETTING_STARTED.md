@@ -56,7 +56,21 @@ Pick `Browser login` (or `Device code login` on headless/SSH), complete it in
 the browser, and ResearchX sets the newest Codex GPT as your default. Inside
 the app, `/thinking high` raises reasoning effort.
 
-**Option B — custom provider.** Any OpenAI-compatible endpoint works
+**Option B — OpenCode Zen / Go (authorized API key).**
+For Zen, sign in to the OpenCode Console, add billing/credits, and create an
+API key. For Go, use an OpenCode Go subscription key. In the app run
+`/providers` → `Connect OpenCode Zen` or `Connect OpenCode Go` and paste it
+(the equivalent of OpenCode's `/connect`). You can also set
+`OPENCODE_API_KEY` in your shell / `.env`, then choose `opencode/...` models
+for Zen or `opencode-go/...` models for Go. The bundled Pi runtime supplies
+the official OpenCode endpoints and model catalog; no app-identity headers are
+spoofed.
+
+If OpenCode returns `403 FreeTierError`, that is OpenCode's upstream free-tier
+policy: free access is restricted to the OpenCode app. Use a paid/authorized
+Zen or Go key, or choose another provider; changing headers will not bypass it.
+
+**Option C — custom provider.** Any OpenAI-compatible endpoint works
 (OpenRouter, LM Studio at `http://localhost:1234/v1`, Ollama/vLLM `/v1`,
 LiteLLM proxy, …). Create the file `%USERPROFILE%\.researchx\custom-providers.json`
 (macOS/Linux: `~/.researchx/custom-providers.json`):
@@ -157,6 +171,7 @@ Branch, commit, push, open a PR against `main` on GitHub.
 | `This newer Node release is not supported yet` | Use Node 24 (`fnm use 24`) |
 | `Could not read an authenticated package-lock restore seed` | Delete `.researchx/npm`, `.researchx/runtime-workspace.tgz*` in the repo and relaunch (it rebuilds) |
 | `invalid x-api-key` / 401 on every message | Your provider key is wrong or expired — fix `custom-providers.json`, then `/new` (old sessions keep the old model) |
+| `403 FreeTierError` from OpenCode | OpenCode's free tier is app-only upstream — use a paid/authorized Zen or Go key, or another provider; do not spoof headers |
 | `The 'kaggle' CLI is not installed` | `pip install kaggle` (Windows: `py -m pip install kaggle`) |
 | Telemetry concerns | Nothing is sent anywhere unless you set `RESEARCHX_POSTHOG_KEY`. `RESEARCHX_TELEMETRY=off` disables it explicitly |
 | Old `~/.researchx` folder exists | Harmless leftover from the previous base; ResearchX only reads `~/.researchx` |

@@ -8,6 +8,7 @@ import type { AuthEvent, AuthPrompt } from "@earendil-works/pi-ai";
 import { choosePreferredModelRecord, getAvailableModelRecords } from "../../src/model/catalog.js";
 import { createModelRuntime } from "../../src/model/registry.js";
 import { openUrl } from "../../src/system/open-url.js";
+import { formatOpenCodeProviderError } from "../../src/model/opencode.js";
 
 export interface CustomProviderModel {
 	id: string;
@@ -290,6 +291,8 @@ export function registerCustomProviderCommand(pi: ExtensionAPI): void {
 type ProviderMenuAction =
 	| { type: "login-codex" }
 	| { type: "login-other" }
+	| { type: "connect-zen" }
+	| { type: "connect-go" }
 	| { type: "view-custom" };
 
 async function providersMenu(ctx: ProviderCommandContext): Promise<void> {
@@ -299,6 +302,8 @@ async function providersMenu(ctx: ProviderCommandContext): Promise<void> {
 			label: `Login with Codex (ChatGPT Plus/Pro) [${codexOn ? "login:set" : "login:missing"}]`,
 			value: { type: "login-codex" },
 		},
+		{ label: "Connect OpenCode Zen (API key)", value: { type: "connect-zen" } },
+		{ label: "Connect OpenCode Go (API key)", value: { type: "connect-go" } },
 		{ label: "Other subscription login…", value: { type: "login-other" } },
 		{ label: "View custom providers", value: { type: "view-custom" } },
 	];
@@ -309,11 +314,48 @@ async function providersMenu(ctx: ProviderCommandContext): Promise<void> {
 		await loginSubscriptionProvider(ctx, "openai-codex");
 		return;
 	}
+	if (action.type === "connect-zen") {
+		await connectGatewayKey(ctx, "opencode", "OpenCode Zen (https://opencode.ai/auth → create an authorized API key)");
+		return;
+	}
+	if (action.type === "connect-go") {
+		await connectGatewayKey(ctx, "opencode-go", "OpenCode Go (https://opencode.ai/auth → OpenCode Go API key)");
+		return;
+	}
 	if (action.type === "login-other") {
 		await loginSubscriptionProvider(ctx, undefined);
 		return;
 	}
 	await showProvidersStatus(ctx);
+}
+
+/** opencode `/connect` equivalent: paste a gateway API key, store it in Pi auth storage. */
+async function connectGatewayKey(ctx: ProviderCommandContext, providerId: string, keySource: string): Promise<void> {
+	if (!ctx.hasUI) {
+		ctx.ui.notify(`Connecting ${providerId} needs interactive mode. Run \`researchx model login ${providerId}\` from a terminal instead.`, "error");
+		return;
+	}
+	const key = await ctx.ui.input(`Paste ${providerId} API key`, keySource);
+	if (!key?.trim()) return;
+	let runtime: Awaited<ReturnType<typeof createModelRuntime>>;
+	try {
+		runtime = await createModelRuntime(authPath());
+	} catch (error) {
+		ctx.ui.notify(`Could not open model auth storage: ${error instanceof Error ? error.message : String(error)}`, "error");
+		return;
+	}
+	try {
+		await runtime.login(providerId, "api_key", {
+			prompt: async () => key.trim(),
+			notify: () => undefined,
+		});
+	} catch (error) {
+		const detail = error instanceof Error ? error.message : String(error);
+		ctx.ui.notify(`Connect failed: ${formatOpenCodeProviderError(detail)}`, "error");
+		return;
+	}
+	ctx.ui.notify(`${providerId} key saved.`, "info");
+	await maybeSetSubscriptionDefault(ctx, providerId);
 }
 
 async function isCodexLoggedIn(): Promise<boolean> {
@@ -374,11 +416,17 @@ async function subscriptionStatusLines(): Promise<string[]> {
 	try {
 		const runtime = await createModelRuntime(authPath());
 		const credentials = await runtime.listCredentials();
-		const codexOn = credentials.some((credential) => credential.providerId === "openai-codex");
+		const has = (id: string) => credentials.some((credential) => credential.providerId === id);
+		const hasOpenCodeEnvKey = Boolean(process.env.OPENCODE_API_KEY?.trim());
+		const hasOpenCodeKey = (id: string) => has(id) || (hasOpenCodeEnvKey && (id === "opencode" || id === "opencode-go"));
 		return [
 			"Subscription logins (OAuth):",
-			`• openai-codex — OpenAI Codex (ChatGPT Plus/Pro) [${codexOn ? "login:set" : "login:missing"}]`,
+			`• openai-codex — OpenAI Codex (ChatGPT Plus/Pro) [${has("openai-codex") ? "login:set" : "login:missing"}]`,
 			"  configure: /providers login codex",
+			"API-key gateways (/connect equivalent):",
+			`• opencode — OpenCode Zen (pay-per-use GPT/Claude/Gemini) [${hasOpenCodeKey("opencode") ? "key:set" : "key:missing"}]`,
+			`• opencode-go — OpenCode Go (subscription) [${hasOpenCodeKey("opencode-go") ? "key:set" : "key:missing"}]`,
+			"  configure: /providers menu → Connect OpenCode Zen/Go, or `researchx model login opencode` / `researchx model login opencode-go`",
 		];
 	} catch {
 		return [
