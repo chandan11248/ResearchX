@@ -90,9 +90,7 @@ async function changeContextWindow(ctx: CommandContext, model: ModelRef): Promis
 }
 
 export function registerSettingsCommand(pi: ExtensionAPI): void {
-	pi.registerCommand("setting", {
-		description: "ResearchX settings: context window selection and model defaults.",
-		handler: async (_args, ctx) => {
+	const handler = async (_args: string, ctx: CommandContext): Promise<void> => {
 			if (!ctx.hasUI) {
 				ctx.ui.notify("The settings menu needs interactive mode. Use `researchx model context` from a terminal instead.", "error");
 				return;
@@ -129,6 +127,15 @@ export function registerSettingsCommand(pi: ExtensionAPI): void {
 			} catch (error) {
 				ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
 			}
-		},
+	};
+	// Canonical name. Note: Pi ships a builtin `/settings` too, but extension
+	// commands dispatch first, so this menu wins on exact `/settings` input.
+	pi.registerCommand("settings", {
+		description: "ResearchX settings: context window selection and model defaults.",
+		handler,
+	});
+	pi.registerCommand("setting", {
+		description: "Alias of /settings.",
+		handler,
 	});
 }

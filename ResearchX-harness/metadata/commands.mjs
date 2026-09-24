@@ -39,7 +39,7 @@ export const extensionCommandSpecs = [
 	{ name: "commands", args: "", section: "Project & Session", description: "Browse ResearchX workflow, project, and approved live runtime commands.", publicDocs: true },
 	{ name: "help", args: "", section: "Project & Session", description: "Show grouped ResearchX commands and prefill the editor with a selected command.", publicDocs: true },
 	{ name: "researchx-model", args: "", section: "Project & Session", description: "Open ResearchX's approved research model menu (main + per-subagent overrides).", publicDocs: true },
-	{ name: "setting", args: "", section: "Project & Session", description: "ResearchX settings: pick a model to view or set its context window.", publicDocs: true },
+	{ name: "settings", args: "", section: "Project & Session", description: "ResearchX settings: pick a model to view or set its context window.", publicDocs: true },
 	{ name: "providers", args: "", section: "Project & Session", description: "Show custom API providers from custom-providers.json.", publicDocs: true },
 	{ name: "init", args: "", section: "Project & Session", description: "Bootstrap AGENTS.md and session-log folders for a research project.", publicDocs: true },
 	{ name: "outputs", args: "", section: "Project & Session", description: "Browse all research artifacts (papers, outputs, experiments, notes).", publicDocs: true },
