@@ -459,24 +459,75 @@ export function patchPiEditorSource(source) {
 }
 
 export function patchPiInteractiveThemeSource(source) {
-	if (
-		source.includes('bgColor: (text) => theme.bg("userMessageBg", text),') &&
-		source.includes('input: (text) => theme.fg("text", text),')
-	) {
+	if (source.includes('theme.fg("inputText"')) {
 		return source;
 	}
-	const patched = source.replace(
-		/export function getEditorTheme\(\) \{[\s\S]*?\n\}\nexport function getSettingsListTheme\(\) \{/m,
-		`${EDITOR_THEME_BLOCK}\nexport function getSettingsListTheme() {`,
-	);
+	let patched = source;
 	if (
-		patched === source ||
 		!patched.includes('bgColor: (text) => theme.bg("userMessageBg", text),') ||
 		!patched.includes('input: (text) => theme.fg("text", text),')
 	) {
-		throw new Error("Unsupported Pi interactive theme layout: required editor-theme patch anchor was not found");
+		const normalized = patched.replace(
+			/export function getEditorTheme\(\) \{[\s\S]*?\n\}\nexport function getSettingsListTheme\(\) \{/m,
+			`${EDITOR_THEME_BLOCK}\nexport function getSettingsListTheme() {`,
+		);
+		if (
+			normalized === patched ||
+			!normalized.includes('bgColor: (text) => theme.bg("userMessageBg", text),') ||
+			!normalized.includes('input: (text) => theme.fg("text", text),')
+		) {
+			throw new Error("Unsupported Pi interactive theme layout: required editor-theme patch anchor was not found");
+		}
+		patched = normalized;
+	}
+	// ResearchX: the input editor renders typed text with the theme's
+	// "inputText" color (falls back to "text" when a theme omits it), so the
+	// input area can carry its own accent without recoloring all text.
+	if (!patched.includes('theme.fg("inputText"')) {
+		patched = patched
+			.replace(
+				'input: (text) => theme.fg("text", text),',
+				'input: (text) => theme.fg("inputText", text),',
+			)
+			.replace(
+				"searchMatchText: colors.searchMatchText ?? colors.text,",
+				'searchMatchText: colors.searchMatchText ?? colors.text,\n        inputText: colors.inputText ?? colors.text,',
+			)
+			.replace(
+				"searchMatchText: fgColors.searchMatchText ?? fgColors.text,",
+				'searchMatchText: fgColors.searchMatchText ?? fgColors.text,\n            inputText: fgColors.inputText ?? fgColors.text,',
+			);
+	}
+	if (!patched.includes('theme.fg("inputText"')) {
+		throw new Error("Unsupported Pi interactive theme layout: required input-text patch anchor was not found");
 	}
 	return patched;
+}
+
+// ResearchX: allow themes to define an optional "inputText" color for the
+// input editor. Unknown color keys fail Pi's theme-schema validation, so the
+// schema itself must accept the key (optional, falls back to "text").
+const THEME_SCHEMA_INPUT_TEXT_ANCHOR = `"thinkingText": {
+					"$ref": "#/$defs/colorValue",
+					"description": "Thinking block text color"
+				},`;
+const THEME_SCHEMA_INPUT_TEXT_PATCHED = `"thinkingText": {
+					"$ref": "#/$defs/colorValue",
+					"description": "Thinking block text color"
+				},
+				"inputText": {
+					"$ref": "#/$defs/colorValue",
+					"description": "Input editor text color (falls back to text when omitted)"
+				},`;
+
+export function patchPiThemeSchemaSource(source) {
+	if (source.includes('"inputText"')) {
+		return source;
+	}
+	if (!source.includes(THEME_SCHEMA_INPUT_TEXT_ANCHOR)) {
+		throw new Error("Unsupported Pi theme-schema layout: required thinkingText patch anchor was not found");
+	}
+	return source.replace(THEME_SCHEMA_INPUT_TEXT_ANCHOR, THEME_SCHEMA_INPUT_TEXT_PATCHED);
 }
 
 const INTERACTIVE_UPDATE_NOTICE_SOURCE = `    showPackageUpdateNotification(packages) {

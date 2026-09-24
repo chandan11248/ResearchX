@@ -59,6 +59,7 @@ import {
 	patchPiInteractiveThemeSource,
 	patchPiInteractiveUpdateNoticeSource,
 	patchPiSelectListPreviewSource,
+	patchPiThemeSchemaSource,
 	patchPiTuiSource,
 } from "../../scripts/lib/pi-tui-patch.mjs";
 import {
@@ -578,6 +579,13 @@ export function patchPiRuntimeNodeModules(
 			"pi-coding-agent",
 			"dist/modes/interactive/theme/theme.js",
 			patchPiInteractiveThemeSource,
+			bundledPiVersion,
+		) || changed;
+		changed = patchScopedPiPackageFileIfPresent(
+			nodeModulesPath,
+			"pi-coding-agent",
+			"dist/modes/interactive/theme/theme-schema.json",
+			patchPiThemeSchemaSource,
 			bundledPiVersion,
 		) || changed;
 		changed = patchScopedPiPackageFileIfPresent(

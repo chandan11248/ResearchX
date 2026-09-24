@@ -1,0 +1,22 @@
+{
+  "$comment": "Copy to ~/.researchx/custom-providers.json and fill in your values. ResearchX also accepts a project .env with base_url + key + model as a dev fallback.",
+  "providers": [
+    {
+      "id": "my-provider",
+      "name": "My Provider",
+      "api": "openai-completions",
+      "baseUrl": "https://YOUR-PROVIDER/v1",
+      "apiKey": "sk-YOUR-KEY-HERE",
+      "models": [
+        {
+          "id": "your-model-id",
+          "name": "My Model",
+          "reasoning": false,
+          "contextWindow": 1000000,
+          "maxTokens": 8000
+        }
+      ]
+    }
+  ],
+  "defaultModel": "my-provider/your-model-id"
+}

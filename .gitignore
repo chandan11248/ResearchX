@@ -6,5 +6,15 @@ build/
 .env.*
 !.env.example
 .DS_Store?
-# Local ResearchX runtime state
-.researchx/
+# Local ResearchX runtime state (generated caches, installs, bundles).
+# Source files under .researchx/ (SYSTEM.md, agents/, config/, themes/,
+# settings.json) stay tracked; only ephemeral state is ignored.
+**/.researchx/npm
+**/.researchx/npm-global
+**/.researchx/sessions
+**/.researchx/workbench
+**/.researchx/cache
+**/.researchx/schedule-prompts.json
+**/.researchx/runtime-workspace.tgz
+**/.researchx/runtime-workspace.sha256
+**/.researchx/runtime-package-lock.json

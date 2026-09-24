@@ -47,6 +47,7 @@ import {
 	patchPiEditorSource,
 	patchPiInteractiveThemeSource,
 	patchPiInteractiveUpdateNoticeSource,
+	patchPiThemeSchemaSource,
 	patchPiTuiSource,
 } from "./lib/pi-tui-patch.mjs";
 import { computeRuntimeTreeHash } from "./lib/runtime-workspace-integrity.mjs";
@@ -149,6 +150,7 @@ const cliPath = piPackageRoot ? resolve(piPackageRoot, "dist", "cli.js") : null;
 const bunCliPath = piPackageRoot ? resolve(piPackageRoot, "dist", "bun", "cli.js") : null;
 const interactiveModePath = piPackageRoot ? resolve(piPackageRoot, "dist", "modes", "interactive", "interactive-mode.js") : null;
 const interactiveThemePath = piPackageRoot ? resolve(piPackageRoot, "dist", "modes", "interactive", "theme", "theme.js") : null;
+const themeSchemaPath = piPackageRoot ? resolve(piPackageRoot, "dist", "modes", "interactive", "theme", "theme-schema.json") : null;
 const extensionLoaderPath = piPackageRoot ? resolve(piPackageRoot, "dist", "core", "extensions", "loader.js") : null;
 const authStoragePath = piPackageRoot ? resolve(piPackageRoot, "dist", "core", "auth-storage.js") : null;
 const modelRegistryPath = piPackageRoot ? resolve(piPackageRoot, "dist", "core", "model-registry.js") : null;
@@ -294,6 +296,14 @@ const workspaceInteractiveThemePath = resolveWorkspacePiFile(
 	"interactive",
 	"theme",
 	"theme.js",
+);
+const workspaceThemeSchemaPath = resolveWorkspacePiFile(
+	"pi-coding-agent",
+	"dist",
+	"modes",
+	"interactive",
+	"theme",
+	"theme-schema.json",
 );
 const workspaceExtensionLoaderPath = resolveWorkspacePiFile(
 	"pi-coding-agent",
@@ -1067,6 +1077,11 @@ patchFilesIfPresent([
 patchFilesIfPresent(
 	[interactiveThemePath, workspaceInteractiveThemePath],
 	patchPiInteractiveThemeSource,
+);
+
+patchFilesIfPresent(
+	[themeSchemaPath, workspaceThemeSchemaPath],
+	patchPiThemeSchemaSource,
 );
 
 patchFilesIfPresent(

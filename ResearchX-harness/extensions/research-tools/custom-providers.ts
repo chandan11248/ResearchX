@@ -32,6 +32,10 @@ export interface CustomProvidersFile {
 	defaultModel?: string;
 }
 
+/** Default context window for ResearchX custom providers (1M tokens). */
+export const DEFAULT_CONTEXT_WINDOW = 1_000_000;
+const DEFAULT_MAX_TOKENS = 4096;
+
 export function customProvidersPath(): string {
 	const home = process.env.RESEARCHX_HOME?.trim() || process.env.RESEARCHX_HOME?.trim() || join(homedir(), ".researchx");
 	return resolve(home, "custom-providers.json");
@@ -131,8 +135,8 @@ function toRegistryModels(entry: CustomProviderEntry): Array<{
 		reasoning: model.reasoning ?? false,
 		input: ["text" as const],
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-		contextWindow: model.contextWindow ?? 128000,
-		maxTokens: model.maxTokens ?? 4096,
+		contextWindow: model.contextWindow ?? DEFAULT_CONTEXT_WINDOW,
+		maxTokens: model.maxTokens ?? DEFAULT_MAX_TOKENS,
 	}));
 }
 
@@ -153,21 +157,11 @@ export async function installCustomProviders(
 	const registry = ctx.modelRegistry;
 	const registered: string[] = [];
 	for (const entry of file.providers ?? []) {
-		if (!entry?.id || !entry?.baseUrl) continue;
-		try {
-			registry.registerProvider(entry.id, {
-				name: entry.name ?? entry.id,
-				baseUrl: entry.baseUrl,
-				apiKey: entry.apiKey,
-				api: (entry.api ?? "openai-completions") as "openai-completions",
-				models: toRegistryModels(entry),
-			});
+		const result = registerProviderEntry(registry, entry);
+		if (result.registered) {
 			registered.push(entry.id);
-		} catch (err) {
-			ctx.ui.notify(
-				`custom provider "${entry.id}" failed: ${err instanceof Error ? err.message : String(err)}`,
-				"warning",
-			);
+		} else if (result.error) {
+			ctx.ui.notify(`custom provider "${entry.id}" failed: ${result.error}`, "warning");
 		}
 	}
 	if (file.defaultModel) {
@@ -176,6 +170,62 @@ export async function installCustomProviders(
 	persistModelsJson(file);
 	nudgeOnUnauthenticatedModel(registry, ctx, source);
 	return registered;
+}
+
+type RegistryLike = {
+	registerProvider: (
+		id: string,
+		config: {
+			name: string;
+			baseUrl: string;
+			apiKey?: string;
+			api: "openai-completions";
+			models: Array<{
+				id: string;
+				name: string;
+				reasoning: boolean;
+				input: Array<"text" | "image">;
+				cost: { input: number; output: number; cacheRead: number; cacheWrite: number };
+				contextWindow: number;
+				maxTokens: number;
+			}>;
+		},
+	) => void;
+};
+
+/** Register one custom provider entry on a live model registry. Never throws. */
+export function registerProviderEntry(
+	registry: RegistryLike,
+	entry: CustomProviderEntry,
+): { registered: boolean; error?: string } {
+	if (!entry?.id || !entry?.baseUrl) return { registered: false };
+	try {
+		registry.registerProvider(entry.id, {
+			name: entry.name ?? entry.id,
+			baseUrl: entry.baseUrl,
+			apiKey: entry.apiKey,
+			api: (entry.api ?? "openai-completions") as "openai-completions",
+			models: toRegistryModels(entry),
+		});
+		return { registered: true };
+	} catch (err) {
+		return { registered: false, error: err instanceof Error ? err.message : String(err) };
+	}
+}
+
+/** Read the file-backed custom provider config (no .env fallback). */
+export function readCustomProvidersFile(): { file: CustomProvidersFile; path: string; error?: string } {
+	return readConfigFile();
+}
+
+/** Persist the file-backed custom provider config. Returns false on write failure. */
+export function saveCustomProvidersFile(file: CustomProvidersFile, path: string): boolean {
+	try {
+		writeFileSync(path, `${JSON.stringify(file, null, 2)}\n`, "utf8");
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 /**
@@ -187,37 +237,150 @@ export async function installCustomProviders(
  * custom provider available to Pi from process start, making the persisted
  * default stable across launches and headless (`--prompt`) runs.
  */
-function persistModelsJson(file: CustomProvidersFile): void {
+type PersistedProviderRecord = Record<string, unknown> & {
+	providers?: Record<string, Record<string, unknown>>;
+};
+
+type PersistedModelEntry = {
+	id: string;
+	name?: string;
+	contextWindow?: number;
+	maxTokens?: number;
+};
+
+function asPersistedModelEntries(value: unknown): PersistedModelEntry[] {
+	if (!Array.isArray(value)) return [];
+	const entries: PersistedModelEntry[] = [];
+	for (const item of value) {
+		if (!item || typeof item !== "object") continue;
+		const record = item as Record<string, unknown>;
+		if (typeof record.id !== "string" || !record.id) continue;
+		const entry: PersistedModelEntry = { id: record.id };
+		if (typeof record.name === "string" && record.name) entry.name = record.name;
+		if (typeof record.contextWindow === "number" && Number.isFinite(record.contextWindow)) {
+			entry.contextWindow = record.contextWindow;
+		}
+		if (typeof record.maxTokens === "number" && Number.isFinite(record.maxTokens)) {
+			entry.maxTokens = record.maxTokens;
+		}
+		entries.push(entry);
+	}
+	return entries;
+}
+
+/**
+ * Merge file-declared models with existing models.json entries so values set
+ * elsewhere (e.g. the /researchx-model context-window editor) survive a
+ * relaunch. File-declared fields win; otherwise existing values win; the
+ * ResearchX 1M default fills a missing contextWindow.
+ */
+export function mergePersistedModels(
+	existing: unknown,
+	fileModels: CustomProviderModel[],
+): PersistedModelEntry[] {
+	const existingById = new Map(asPersistedModelEntries(existing).map((entry) => [entry.id, entry]));
+	return fileModels.map((model) => {
+		const prev = existingById.get(model.id);
+		const entry: PersistedModelEntry = { id: model.id };
+		const name = model.name ?? prev?.name;
+		if (name) entry.name = name;
+		entry.contextWindow = model.contextWindow ?? prev?.contextWindow ?? DEFAULT_CONTEXT_WINDOW;
+		const maxTokens = model.maxTokens ?? prev?.maxTokens;
+		if (maxTokens !== undefined) entry.maxTokens = maxTokens;
+		return entry;
+	});
+}
+
+function readModelsJson(): PersistedProviderRecord | undefined {
+	const path = resolve(agentDir(), "models.json");
+	try {
+		const raw = JSON.parse(readFileSync(path, "utf8")) as unknown;
+		if (raw && typeof raw === "object") return raw as PersistedProviderRecord;
+	} catch {
+		// Missing file: start empty. Unreadable file: signal to leave it alone.
+		if (!existsSync(path)) return {};
+		return undefined;
+	}
+	return {};
+}
+
+function writeModelsJson(parsed: PersistedProviderRecord): boolean {
+	try {
+		writeFileSync(resolve(agentDir(), "models.json"), `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+export function persistCustomProvidersModelsJson(file: CustomProvidersFile): void {
 	const entries = (file.providers ?? []).filter((entry) => entry?.id && entry?.baseUrl);
 	if (entries.length === 0) return;
-	const path = resolve(agentDir(), "models.json");
-	let parsed: { providers?: Record<string, Record<string, unknown>> } = {};
-	if (existsSync(path)) {
-		try {
-			const raw = JSON.parse(readFileSync(path, "utf8")) as unknown;
-			if (raw && typeof raw === "object") parsed = raw as typeof parsed;
-		} catch {
-			// Leave an unreadable models.json alone rather than clobbering it.
-			return;
-		}
-	}
+	const parsed = readModelsJson();
+	// Leave an unreadable models.json alone rather than clobbering it.
+	if (!parsed) return;
 	const providers: Record<string, Record<string, unknown>> = {
 		...(parsed.providers && typeof parsed.providers === "object" ? parsed.providers : {}),
 	};
 	for (const entry of entries) {
+		const existingProvider =
+			typeof providers[entry.id] === "object" && providers[entry.id] ? providers[entry.id]! : {};
 		providers[entry.id] = {
-			...(typeof providers[entry.id] === "object" && providers[entry.id] ? providers[entry.id] : {}),
+			...existingProvider,
 			baseUrl: entry.baseUrl,
 			api: entry.api ?? "openai-completions",
 			...(entry.apiKey ? { apiKey: entry.apiKey } : {}),
-			models: (entry.models ?? []).map((model) => ({ id: model.id })),
+			models: mergePersistedModels(existingProvider.models, entry.models ?? []),
 		};
 	}
-	try {
-		writeFileSync(path, `${JSON.stringify({ providers }, null, 2)}\n`, "utf8");
-	} catch {
-		// Best effort; runtime registration still covers the current session.
-	}
+	parsed.providers = providers;
+	writeModelsJson(parsed);
+}
+
+/** Backwards-compatible alias used before the merge-preserving rewrite. */
+function persistModelsJson(file: CustomProvidersFile): void {
+	persistCustomProvidersModelsJson(file);
+}
+
+/**
+ * Set a per-model context-window override in Pi auth storage (`modelOverrides`
+ * in `<agent-dir>/models.json`). Works for any provider (custom, Zen, Codex,
+ * …) without touching provider endpoints or keys. Survives relaunch because
+ * the custom-provider sync preserves unknown provider fields.
+ */
+export function setModelContextOverride(providerId: string, modelId: string, contextWindow: number): boolean {
+	const parsed = readModelsJson();
+	if (!parsed) return false;
+	const providers: Record<string, Record<string, unknown>> = {
+		...(parsed.providers && typeof parsed.providers === "object" ? parsed.providers : {}),
+	};
+	const existing =
+		typeof providers[providerId] === "object" && providers[providerId] ? { ...providers[providerId]! } : {};
+	const overrides: Record<string, unknown> =
+		existing.modelOverrides && typeof existing.modelOverrides === "object"
+			? { ...(existing.modelOverrides as Record<string, unknown>) }
+			: {};
+	const prev = overrides[modelId] && typeof overrides[modelId] === "object" ? { ...(overrides[modelId] as Record<string, unknown>) } : {};
+	prev.contextWindow = contextWindow;
+	overrides[modelId] = prev;
+	existing.modelOverrides = overrides;
+	providers[providerId] = existing;
+	parsed.providers = providers;
+	return writeModelsJson(parsed);
+}
+
+/** Read a per-model context-window override from Pi auth storage, if present. */
+export function getModelContextOverride(providerId: string, modelId: string): number | undefined {
+	const parsed = readModelsJson();
+	if (!parsed || !parsed.providers || typeof parsed.providers !== "object") return undefined;
+	const provider = parsed.providers[providerId];
+	if (!provider || typeof provider !== "object") return undefined;
+	const overrides = provider.modelOverrides;
+	if (!overrides || typeof overrides !== "object") return undefined;
+	const entry = (overrides as Record<string, unknown>)[modelId];
+	if (!entry || typeof entry !== "object") return undefined;
+	const value = (entry as Record<string, unknown>).contextWindow;
+	return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 function persistDefaultModel(
