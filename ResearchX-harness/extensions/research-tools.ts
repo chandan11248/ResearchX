@@ -7,6 +7,7 @@ import { registerCurrentDateResearchContext } from "./research-tools/current-dat
 import { registerDiscoveryCommands } from "./research-tools/discovery.js";
 import { installCustomProviders, registerCustomProviderCommand } from "./research-tools/custom-providers.js";
 import { registerResearchXModelCommand } from "./research-tools/researchx-model.js";
+import { registerSettingsCommand } from "./research-tools/settings.js";
 import { installResearchXHeader } from "./research-tools/header.js";
 import { registerHelpCommand } from "./research-tools/help.js";
 import { registerHuggingFaceTools } from "./research-tools/huggingface.js";
@@ -40,6 +41,7 @@ export default function researchTools(pi: ExtensionAPI): void {
 	registerHumanCheckpointTools(pi);
 	registerDiscoveryCommands(pi);
 	registerResearchXModelCommand(pi);
+	registerSettingsCommand(pi);
 	registerHelpCommand(pi);
 	registerInitCommand(pi);
 	registerOutputsCommand(pi);
