@@ -194,11 +194,11 @@ export function formatHeaderDate(date: Date): string {
 	return `${year}-${month}-${day}`;
 }
 
-/** Spinning arc-reactor core: advances on every header render (startup, streaming). */
-const REACTOR_FRAMES = ["◐", "◓", "◑", "◒"];
+/** Spinning status dot: advances on every header render (startup, streaming). */
+const SPIN_FRAMES = ["◐", "◓", "◑", "◒"];
 
-function reactorFrame(): string {
-	return REACTOR_FRAMES[Math.floor(Date.now() / 250) % REACTOR_FRAMES.length]!;
+function spinFrame(): string {
+	return SPIN_FRAMES[Math.floor(Date.now() / 250) % SPIN_FRAMES.length]!;
 }
 
 /** Launch boot phase by elapsed time: plays INITIALIZING → CALIBRATING → ONLINE. */
@@ -209,16 +209,28 @@ function bootPhase(bootAt: number): { label: string; ready: boolean } {
 	return { label: "CORE ONLINE", ready: true };
 }
 
-function reactorLines(frame: string): string[] {
-	return ["   ╭───╮   ", `───┤ ${frame} ├───`, "   ╰───╯   "];
-}
-
-const GALAXY_FRAMES = [
-	["    .     ·   *   ·     .    ", "       ·  .  ╭─┼─╮  .  ·       ", "    *     ·   ─┼─   ·     *    "],
-	["    ·   *     .     ·   *      ", "       .   ·  ╰─┼─╯  ·   .     ", "    .      *   ─┼─   *      .  "],
-	["    *     ·   .   ·     *      ", "       ·  .  ╭─┼─╮  .  ·       ", "    ·      .   ─┼─   .      ·  "],
-	["    .   ·     *     ·   .      ", "       *   ·  ╰─┼─╯  ·   *     ", "    ·     .    ─┼─   .     ·   "],
+/** Greeting companion: a small cat that blinks every couple of seconds
+ * (the header re-renders on a 250ms timer, so the blink plays live). */
+const CAT_OPEN = [
+	"    /\\      /\\      ",
+	"    |  \\____/  |    ",
+	"    |  o    o  |    ",
+	"    |    __    |    ",
+	"    |   /  \\   |    ",
+	"     \\_/    \\_/     ",
 ];
+const CAT_BLINK = [
+	"    /\\      /\\      ",
+	"    |  \\____/  |    ",
+	"    |  -    -  |    ",
+	"    |    __    |    ",
+	"    |   /  \\   |    ",
+	"     \\_/    \\_/     ",
+];
+
+function catFrame(): string[] {
+	return Math.floor(Date.now() / 2200) % 2 === 1 ? CAT_BLINK : CAT_OPEN;
+}
 
 function commandChoices(pi: ExtensionAPI): string[] {
 	return pi.getCommands()
@@ -299,7 +311,7 @@ export function installResearchXHeader(
 
 			const component = {
 				render(width: number): string[] {
-				if (width < 16) return [truncateVisible(`${reactorFrame()} RX`, Math.max(1, width))];
+				if (width < 16) return [truncateVisible(`${spinFrame()} RX`, Math.max(1, width))];
 
 				const maxW = Math.max(width - 2, 1);
 				const cardW = Math.min(maxW, 120);
@@ -341,13 +353,14 @@ export function installResearchXHeader(
 							panelLines.push(theme.fg("inputText" as Parameters<typeof theme.fg>[0], wrapped));
 						}
 					}
-					panelLines.push(theme.fg("dim", "Ctrl+Shift + key to open"));
-					panelLines.push(theme.fg("accent", theme.bold("NEBULA // LIVE")));
-					const frame = GALAXY_FRAMES[pulseIndex % GALAXY_FRAMES.length]!;
-					for (const galaxyLine of frame) {
-						panelLines.push(theme.fg("dim", centerText(truncateVisible(galaxyLine, panelW), panelW)));
-					}
-					return panelLines;
+				panelLines.push(theme.fg("dim", "Ctrl+Shift + key to open"));
+				panelLines.push("");
+				panelLines.push(theme.fg("accent", theme.bold("COMPANION")));
+				panelLines.push(centerText(theme.fg("accent", theme.bold("Hello!")), panelW));
+				for (const catLine of catFrame()) {
+					panelLines.push(centerText(catLine, panelW));
+				}
+				return panelLines;
 				};
 
 				const modelLabel = getCurrentModelLabel(ctx);
@@ -356,7 +369,7 @@ export function installResearchXHeader(
 				// Keep the header stable during streaming work. Recomputing this from the live
 				// branch on every render makes high-churn workflows redraw the whole viewport.
 				const activity = activitySnapshot;
-				const frame = reactorFrame();
+				const frame = spinFrame();
 				const boot = bootPhase(bootAt);
 				const modelCtx = (() => {
 					if (!ctx.model) return "";
@@ -374,14 +387,8 @@ export function installResearchXHeader(
 					push("");
 				}
 
-				// Arc-reactor core + boot status: the launch animation.
+				// Boot status line: the launch animation (phases advance per render).
 				if (cardW >= 40) {
-					const inputGlow = (text: string): string =>
-						theme.fg("inputText" as Parameters<typeof theme.fg>[0], text);
-					const reactorOffset = " ".repeat(Math.max(0, Math.floor((cardW - 11) / 2)));
-					for (const reactorLine of reactorLines(frame)) {
-						push(inputGlow(theme.bold(`${reactorOffset}${reactorLine}`)));
-					}
 					const bootText = boot.ready
 						? `${frame} CORE ONLINE · ${toolCount} tools armed`
 						: `${frame} ${boot.label}`;

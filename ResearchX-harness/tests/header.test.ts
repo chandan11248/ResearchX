@@ -37,7 +37,7 @@ function makeContext(setHeader: (factory: HeaderFactory) => void) {
 	};
 }
 
-test("ResearchX header renders the command deck, date signal, and galaxy", async () => {
+test("ResearchX header renders the command deck, date signal, and greeting cat", async () => {
 	let headerFactory: HeaderFactory | undefined;
 	const shortcuts: Record<string, { handler: () => void | Promise<void> }> = {};
 	const editorValues: string[] = [];
@@ -66,7 +66,11 @@ test("ResearchX header renders the command deck, date signal, and galaxy", async
 	assert.match(text, /ALL COMMANDS/);
 	assert.match(text, /HELP/);
 	assert.match(text, /MODELS/);
-	assert.match(text, /NEBULA \/\/ LIVE/);
+	assert.match(text, /COMPANION/);
+	assert.doesNotMatch(text, /NEBULA/);
+	assert.doesNotMatch(text, /MÖBIUS/);
+	assert.match(text, /Hello!/);
+	assert.match(text, /\\____\//);
 	assert.match(text, /DAILY SIGNAL/);
 	assert.match(text, new RegExp(formatHeaderDate(new Date())));
 	const quote = getQuoteOfTheDay(new Date());
